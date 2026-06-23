@@ -23,30 +23,6 @@ scoreboard cheers (visibly bounces faster) every time either team scores.
 Same as any installable web app — you need it hosted at a URL, then add it
 to your home screen from Chrome.
 
-### Option A — GitHub Pages (free, recommended)
-1. Create a free GitHub account if you don't have one (github.com).
-2. Create a new public repository, e.g. "point-guard".
-3. Upload all 5 files from this folder (index.html, manifest.json, sw.js,
-   icon-192.png, icon-512.png).
-4. In the repo, go to Settings → Pages → set Source to your main branch,
-   root folder. Save.
-5. GitHub gives you a URL like:
-   https://yourusername.github.io/point-guard/
-6. Open that URL on your phone in Chrome.
-7. Tap the ⋮ menu → "Add to Home screen" or "Install app".
-8. Confirm — the app icon now sits on your home screen like any other app.
-
-### Option B — Netlify Drop (fastest, no account)
-1. On a computer, go to https://app.netlify.com/drop
-2. Drag this whole folder onto the page.
-3. Netlify gives you an instant public URL — open it on your phone and
-   follow steps 7–8 above.
-
-### Just want to look at it on a PC?
-Double-click `index.html` — it opens in your browser and plays exactly the
-same. (You just won't get the "Install app" prompt or offline caching for
-a local file — those only show up once it's served from a real URL.)
-
 ## How the game works
 
 You play 4 quarters, 5 of your possessions each. On your possession, pick
