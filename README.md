@@ -20,7 +20,7 @@ scoreboard cheers (visibly bounces faster) every time either team scores.
 
 ## How to install on an Android phone
 
-Same as any installable web app — you need it hosted at a URL, then add it
+Same as any installable web app — you need it the URL, then add it
 to your home screen from Chrome.
 
 ## How the game works
