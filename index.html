@@ -502,6 +502,67 @@
   .speaker-badge.speaker-announcer { background: rgba(0,0,0,0.06); color: var(--ink); }
   .speaker-badge.speaker-announcer .sb-avatar { background: #5C5048; }
 
+  .player-figure-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+  .player-figure-wrap svg { display: block; }
+  .figure-pose-idle {
+    animation: figureIdleBounce 1.4s ease-in-out infinite;
+    transform-origin: 50% 100%;
+  }
+  @keyframes figureIdleBounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-1.4px); }
+  }
+  .figure-pose-drive {
+    animation: figureDrivePulse 0.5s ease-out 1;
+    transform-origin: 50% 100%;
+  }
+  @keyframes figureDrivePulse {
+    0%   { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+  .figure-pose-shoot, .figure-pose-shoot3 {
+    animation: figureShootRelease 0.6s ease-out 1;
+    transform-origin: 50% 100%;
+  }
+  @keyframes figureShootRelease {
+    0%   { transform: scaleY(0.85) translateY(2px); }
+    60%  { transform: scaleY(1.05) translateY(-1px); }
+    100% { transform: scaleY(1) translateY(0); }
+  }
+  .figure-ball-release {
+    animation: figureBallArc 0.6s ease-out 1;
+  }
+  @keyframes figureBallArc {
+    0%   { transform: translateY(8px); opacity: 0; }
+    40%  { opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .figure-pose-postup {
+    animation: figurePostShift 0.6s ease-in-out 1;
+    transform-origin: 50% 100%;
+  }
+  @keyframes figurePostShift {
+    0%   { transform: translateX(2px); }
+    50%  { transform: translateX(-1px); }
+    100% { transform: translateX(0); }
+  }
+  .figure-pose-pass {
+    animation: figurePassSwing 0.5s ease-out 1;
+    transform-origin: 50% 50%;
+  }
+  @keyframes figurePassSwing {
+    0%   { transform: rotate(-8deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .player-figure-wrap [class*="figure-"] { animation: none !important; }
+  }
+
   .shot-clock-badge {
     display: inline-flex;
     align-items: center;
@@ -1754,16 +1815,16 @@ function computeOffenseHint() {
   const best = options[0];
   const worst = options[options.length - 1];
 
-  const postureDesc = posture === 'sagging' ? "sagging off to protect the paint" : (posture === 'tight' ? "playing you tight" : "set and balanced");
+  const postureDesc = posture === 'sagging' ? "sagging off, conceding the arc to protect the rim" : (posture === 'tight' ? "pressuring the closeout, contesting every catch" : "in half-court alignment, matched up clean");
 
   let recommendation = best.key;
-  let reason = `${best.key} has the best expected value right now (worth about ${best.ev.toFixed(1)} points on average), since the defense is ${postureDesc}.`;
+  let reason = `${best.key} is the highest-percentage read right now (~${best.ev.toFixed(1)} expected points), because the defense is ${postureDesc}.`;
 
   if (q !== 'working') {
     const workingDriveEv = (SHOT_BASE_ODDS.drive.working) * 2;
     if (workingDriveEv > best.ev + 0.15 && posture !== 'sagging') {
       recommendation = 'Pass';
-      reason = `Right now even your best option (${best.key}, ~${Math.round(best.made*100)}%) is worse than what opens up after one good pass — Drive jumps to ${Math.round(SHOT_BASE_ODDS.drive.working*100)}% once the defense is scrambling. Move the ball first.`;
+      reason = `Ball reversal first. Your current best look (${best.key}, ~${Math.round(best.made*100)}%) is lower-percentage than what opens up one pass later — Drive climbs to ${Math.round(SHOT_BASE_ODDS.drive.working*100)}% once the defense is forced to rotate and scrambles to recover. Move the rock, then attack the broken-down coverage.`;
     }
   }
 
@@ -1781,13 +1842,13 @@ function computeDefenseHint() {
   }).sort((a, b) => b.score - a.score);
 
   const best = ratings[0];
-  let reason = `${best.name} rates best right now (${best.label}).`;
+  let reason = `${best.name} grades out best in this matchup (${best.label}).`;
   if (cpuHot) {
-    reason = `Away is on fire — ${best.name} is the safest call because it doesn't lean into a specific weakness a hot shooter can punish.`;
+    reason = `Away has the hot hand — ${best.name} is the disciplined call here, since it doesn't surrender a specific look a hot shooter can exploit off the catch.`;
   } else if (onRun) {
-    reason = `Away has scored several times in a row. ${best.name} directly answers that pattern.`;
+    reason = `Away is on a scoring run. ${best.name} directly takes away the coverage they've been scoring against.`;
   } else if (trailingBig) {
-    reason = `You need possessions back. ${best.name} gives you the best odds of forcing one.`;
+    reason = `You need a possession back on the clock. ${best.name} maximizes your odds of forcing a live-ball turnover.`;
   }
 
   return { recommendation: best.name, reason, ratings };
@@ -1844,26 +1905,26 @@ function offenseAwareness() {
 
   const labels = ['Very Low', 'Low', 'Fair', 'Good', 'Strong', 'Excellent'];
   const postureNote = {
-    tight: "They're playing you tight — a quick drive past them is live.",
-    neutral: "Defense is set, you're set. Any read is reasonable.",
-    sagging: "They're sagging off, daring a jumper — this is exactly when a three should go up.",
+    tight: "Defender is pressuring the closeout — a quick drive beats that pressure clean.",
+    neutral: "Defense is in half-court alignment. Read the coverage and react.",
+    sagging: "Defense is sagging off the catch, conceding the arc — this is exactly when the three goes up.",
   }[state.defensePosture] || '';
   const tips = [
-    "You're rushed and out of rhythm — get rid of it on a safe look rather than force anything.",
-    "Still rushed. A steady post-up is your safest option right now.",
-    postureNote || "Defense is set but so are you. Any read is reasonable here.",
+    "You're rushed and out of rhythm — reset with a safe read rather than forcing the issue.",
+    "Still rushed. A steady post-up on the block is the safest read right now.",
+    postureNote || "Defense is established. You are balanced. Process the floor.",
     "Good process so far. " + postureNote,
-    "The defense is scrambling. This is the moment to attack with confidence.",
-    "The defense is completely off balance. Whatever you do next, do it with conviction.",
+    "The defense is scrambling — help-side is late. This is the window to attack downhill.",
+    "The defense is completely broken down. Whatever you call next, attack with conviction.",
   ];
   return { score, max: 5, label: labels[score], tip: tips[score] };
 }
 
 function defensePostureLabel() {
   return {
-    tight: { label: 'Pressuring you', icon: '🔒', desc: "Away is playing tight, right in your space — daring you to drive past them." },
-    neutral: { label: 'Set and balanced', icon: '🛡️', desc: "Away is in a standard, balanced set — no real opening yet, no real risk yet either." },
-    sagging: { label: 'Sagging off', icon: '🌊', desc: "Away has backed off, packed toward the paint — they're conceding the outside shot to protect the rim." },
+    tight: { label: 'Pressuring the Closeout', icon: '🔒', desc: "Away is contesting tight on the catch — live dribble beats that pressure off the closeout." },
+    neutral: { label: 'Half-Court Alignment', icon: '🛡️', desc: "Away is in a set half-court shell — no clean advantage yet, no real risk yet either." },
+    sagging: { label: 'Sagging Off', icon: '🌊', desc: "Away has packed the paint and walled off the rim — they're conceding the catch-and-shoot from deep." },
   }[state.defensePosture] || { label: 'Set', icon: '🛡️', desc: '' };
 }
 
@@ -1951,6 +2012,7 @@ function showDecisionCard() {
     roleBadge.className = 'speaker-badge speaker-coach';
     roleBadge.innerHTML = `<span class="sb-avatar">${role.icon}</span><span>${role.name.toUpperCase()}</span>`;
     badgeRow.appendChild(roleBadge);
+    badgeRow.appendChild(buildPlayerFigure(state.playerRole, 'idle', 26));
     card.appendChild(badgeRow);
 
     const eyebrow = document.createElement('div');
@@ -2002,12 +2064,12 @@ function showDecisionCard() {
     const grid = document.createElement('div');
     grid.className = 'btn-grid';
 
-    grid.appendChild(actionButton('primary', 'Drive', 'Attack the rim', () => resolveDrive()));
-    grid.appendChild(actionButton('secondary', 'Pass', 'Swing it, find the open man', () => resolvePass()));
-    grid.appendChild(actionButton('tertiary', 'Post Up', 'Steady look inside', () => resolvePostUp()));
-    grid.appendChild(actionButton('warn', 'Shoot', 'Pull up right now', () => resolveShoot()));
+    grid.appendChild(actionButton('primary', 'Drive', 'Slash to the cup', () => resolveDrive()));
+    grid.appendChild(actionButton('secondary', 'Pass', 'Ball reversal, find the gap', () => resolvePass()));
+    grid.appendChild(actionButton('tertiary', 'Post Up', 'Seal and work the block', () => resolvePostUp()));
+    grid.appendChild(actionButton('warn', 'Shoot', 'Pull up off the bounce', () => resolveShoot()));
 
-    const shoot3Btn = actionButton('three', '3PT Shot', posture.label === 'Sagging off' ? 'They\u2019re begging you to take it' : 'Worth the extra point', () => resolveShoot3());
+    const shoot3Btn = actionButton('three', '3PT Shot', state.defensePosture === 'sagging' ? 'Catch-and-shoot — arc is open' : 'Worth the extra point', () => resolveShoot3());
     shoot3Btn.classList.add('full');
     grid.appendChild(shoot3Btn);
 
@@ -2050,6 +2112,91 @@ const SPEAKERS = {
   away:      { cls: 'speaker-away',      avatar: '⚡', label: 'VOLTAGE' },
   announcer: { cls: 'speaker-announcer', avatar: '🎙️', label: 'ANNOUNCER' },
 };
+
+// ---------------------------------------------------------
+// Player figure — a small animated SVG figure representing you,
+// the point guard, shaped by your assigned role and posed by
+// whichever action you just took (or idle while deciding).
+// Built from simple primitives, same approach as the jersey
+// blobs and action-stage animations elsewhere in the game.
+// ---------------------------------------------------------
+const ROLE_BUILD = {
+  slasher:        { torsoW: 7,  limbW: 2.2, height: 1.0,  lean: 6  },
+  shooter:        { torsoW: 6.5, limbW: 2.0, height: 1.04, lean: 0  },
+  floor_general:  { torsoW: 7,  limbW: 2.2, height: 1.0,  lean: 0  },
+  big_man:        { torsoW: 9.5, limbW: 3.0, height: 0.94, lean: 0  },
+};
+
+function buildPlayerFigure(roleKey, pose, size) {
+  size = size || 30;
+  const build = ROLE_BUILD[roleKey] || ROLE_BUILD.slasher;
+  const color = '#E0481F';
+  const skin = '#C98A5E';
+  const W = 40, H = 50;
+  const cx = W / 2;
+  const hipY = 32 * build.height;
+  const headR = 5.2;
+
+  function limb(x1, y1, x2, y2, extraClass) {
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${build.limbW}" stroke-linecap="round" class="${extraClass||''}"/>`;
+  }
+
+  let torsoTilt = build.lean;
+  let head = { x: cx, y: 10 };
+  let armsSvg = '', legsSvg = '', torsoSvg = '', ballSvg = '';
+  const torsoTop = { x: cx, y: 15 };
+  const torsoBottom = { x: cx, y: hipY };
+
+  if (pose === 'drive') {
+    torsoTilt = 18;
+    head = { x: cx + 4, y: 11 };
+    torsoSvg = `<line x1="${cx+4}" y1="16" x2="${cx-2}" y2="${hipY}" stroke="${color}" stroke-width="${build.torsoW}" stroke-linecap="round"/>`;
+    armsSvg = limb(cx-1, 20, cx+10, 26) + limb(cx-1, 20, cx-9, 14);
+    legsSvg = limb(cx-2, hipY, cx+9, H-2) + limb(cx-2, hipY, cx-10, H-4);
+    ballSvg = `<circle cx="${cx+13}" cy="28" r="3.4" fill="#E8762C" stroke="#3A2410" stroke-width="0.5"/>`;
+  } else if (pose === 'shoot' || pose === 'shoot3') {
+    head = { x: cx, y: 8 };
+    torsoSvg = `<line x1="${cx}" y1="13" x2="${cx}" y2="${hipY-2}" stroke="${color}" stroke-width="${build.torsoW}" stroke-linecap="round"/>`;
+    armsSvg = limb(cx, 16, cx-9, 4) + limb(cx, 16, cx+9, 4);
+    legsSvg = limb(cx, hipY-2, cx-6, H-1) + limb(cx, hipY-2, cx+6, H-1);
+    ballSvg = `<circle cx="${cx}" cy="2" r="3.4" fill="#E8762C" stroke="#3A2410" stroke-width="0.5" class="figure-ball-release"/>`;
+  } else if (pose === 'postup') {
+    torsoTilt = -8;
+    head = { x: cx - 3, y: 11 };
+    torsoSvg = `<line x1="${cx-3}" y1="16" x2="${cx+2}" y2="${hipY}" stroke="${color}" stroke-width="${build.torsoW+1.5}" stroke-linecap="round"/>`;
+    armsSvg = limb(cx+1, 20, cx+11, 18) + limb(cx+1, 20, cx-7, 24);
+    legsSvg = limb(cx+2, hipY, cx+8, H-2) + limb(cx+2, hipY, cx-5, H-3);
+  } else if (pose === 'pass') {
+    head = { x: cx, y: 10 };
+    torsoSvg = `<line x1="${cx}" y1="15" x2="${cx}" y2="${hipY}" stroke="${color}" stroke-width="${build.torsoW}" stroke-linecap="round"/>`;
+    armsSvg = limb(cx, 19, cx+13, 16) + limb(cx, 19, cx-6, 23);
+    legsSvg = limb(cx, hipY, cx+5, H-1) + limb(cx, hipY, cx-6, H-2);
+    ballSvg = `<circle cx="${cx+16}" cy="15" r="3" fill="#E8762C" stroke="#3A2410" stroke-width="0.5"/>`;
+  } else {
+    // idle / ready stance
+    torsoSvg = `<line x1="${cx}" y1="15" x2="${cx}" y2="${hipY}" stroke="${color}" stroke-width="${build.torsoW}" stroke-linecap="round"/>`;
+    armsSvg = limb(cx, 19, cx+8, 25) + limb(cx, 19, cx-8, 25);
+    legsSvg = limb(cx, hipY, cx+5, H-1) + limb(cx, hipY, cx-5, H-1);
+    ballSvg = `<circle cx="${cx}" cy="${hipY+6}" r="3" fill="#E8762C" stroke="#3A2410" stroke-width="0.5"/>`;
+  }
+
+  const svg = `
+    <svg viewBox="0 0 ${W} ${H}" width="${size}" height="${size*1.25}" xmlns="http://www.w3.org/2000/svg">
+      <g class="figure-pose-${pose || 'idle'}">
+        ${legsSvg}
+        ${torsoSvg}
+        ${armsSvg}
+        <circle cx="${head.x}" cy="${head.y}" r="${headR}" fill="${skin}"/>
+        ${ballSvg}
+      </g>
+    </svg>
+  `;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'player-figure-wrap';
+  wrap.innerHTML = svg;
+  return wrap;
+}
 
 function speakerBadge(speakerKey) {
   const s = SPEAKERS[speakerKey] || SPEAKERS.coach;
@@ -2104,7 +2251,7 @@ function resolveShotClockViolation() {
     courtTo: state.ballSpot,
     fireCooled: fireChange === 'cooled' ? 'home' : null,
     body: "The shot clock expired before your team got a shot up. Turnover, ball goes the other way.",
-    coach: "Coach's tip: working the ball is good, but the clock is real. If you've passed a few times without a clean look, it's time to attack before the clock makes the decision for you.",
+    coach: "Coach's tip: ball movement is good, but the clock is real. If you've reversed it a few times without a clean advantage, attack the closeout before the shot clock makes the decision for you.",
     onContinue: () => endYourPossession(false)
   });
 }
@@ -2127,7 +2274,7 @@ function resolvePass() {
       courtTo: 'block',
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "The defense read it and jumped the passing lane. Live-ball turnover — the other team is already pushing the other way.",
-      coach: "Coach's tip: skip passes (passing over distance, across the defense) are great, but only when the defense actually shifted out of position first. If they're set, faster reads can get picked.",
+      coach: "Coach's tip: skip passes — reversing the ball over distance, across the defense — are great, but only once the defense has actually rotated out of position. Against a set shell, faster reads get jumped in the passing lane.",
       onContinue: () => endYourPossession(false)
     });
     return;
@@ -2154,7 +2301,7 @@ function resolvePass() {
     courtFrom: fromSpot,
     courtTo: newSpot,
     body: "That pass forced the defense to shift. You're in better shape now than you were a second ago.",
-    coach: "Coach's tip: every extra pass makes the defense move. Moving defenders make mistakes — that's how the best looks get created.",
+    coach: "Coach's tip: every ball reversal forces help-side to rotate. Defenders in rotation make mistakes — that's the mechanism behind every great closeout and every blown coverage.",
     onContinue: () => { showDecisionCard(); } // possession continues, same trip
   });
 }
@@ -2185,7 +2332,7 @@ function resolveDrive() {
       courtTo: 'block',
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "Two defenders collapsed and knocked it loose. That's the risk of driving into a packed paint.",
-      coach: "Coach's tip: driving works best when there's a clear driving lane. If the defense is already collapsed near the rim, a drive is more likely to end in a turnover or a tough, contested shot.",
+      coach: "Coach's tip: penetration works when there's a clean driving lane. If help-side has already collapsed into the paint, that same drive is more likely to end in a live-ball turnover or a heavily contested attempt at the rim.",
       onContinue: () => endYourPossession(false)
     });
     return;
@@ -2220,7 +2367,7 @@ function resolveDrive() {
         : (state.defensePosture === 'neutral' && odds > SHOT_BASE_ODDS.drive[state.quality]
           ? "They'd sagged off expecting a pass, and you drove right through the space they left. Strong move."
           : "Strong move — you beat your defender off the dribble and converted at the basket."),
-      coach: "Coach's tip: driving is the highest-value shot in basketball when the lane is open — shots at the rim go in far more often than long jumpers.",
+      coach: "Coach's tip: attacking the rim is the highest-value shot in basketball when the driving lane is open — attempts at the cup convert at a far higher rate than pull-up jumpers.",
       onContinue: () => endYourPossession(true)
     });
   } else {
@@ -2236,7 +2383,7 @@ function resolveDrive() {
       courtTo: 'rim',
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "Good drive, but the shot didn't fall. The defense boxed out and grabbed the rebound.",
-      coach: "Coach's tip: a good drive doesn't always end in a make — but it's still usually your best shot to take. Live with the results of a good decision.",
+      coach: "Coach's tip: a good drive doesn't convert every time — but it's still the right process to take. Live with the variance on a sound decision.",
       onContinue: () => endYourPossession(false)
     });
   }
@@ -2267,7 +2414,7 @@ function resolvePostUp() {
       courtTo: postSpot,
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "You backed in a little too hard. The ref blew the whistle — turnover, ball goes the other way.",
-      coach: "Coach's tip: in the post, you're allowed to back your defender down, but barreling through them is a foul. Footwork and balance matter more than force.",
+      coach: "Coach's tip: backing your defender down on the block is legal — using your forearm to clear space is an offensive foul. Footwork and balance win the post, not force.",
       onContinue: () => endYourPossession(false)
     });
     return;
@@ -2301,7 +2448,7 @@ function resolvePostUp() {
       body: state.onFire.home
         ? "You're on fire — another smooth move inside and it's good, like you've called bank shots in your sleep."
         : "Patient post move, good footwork, and it's good. That's a reliable shot you can go back to.",
-      coach: "Coach's tip: the post-up is one of the steadiest shots in the game — it doesn't depend much on how rushed the possession is, which makes it a great option late in the clock.",
+      coach: "Coach's tip: the post-up is one of the steadiest reads on the floor — it doesn't depend much on shot-clock pressure, which makes it a reliable bailout option late in the clock.",
       onContinue: () => endYourPossession(true)
     });
   } else {
@@ -2317,7 +2464,7 @@ function resolvePostUp() {
       courtTo: postSpot,
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "Two defenders collapsed on you and got a hand in your face. Shot didn't fall.",
-      coach: "Coach's tip: if you see a double-team coming in the post, kicking the ball back out is often smarter than forcing a shot through two defenders.",
+      coach: "Coach's tip: when you see the double-team coming in the post, kicking out to the open man is almost always higher-percentage than forcing a shot through two defenders.",
       onContinue: () => endYourPossession(false)
     });
   }
@@ -2347,7 +2494,7 @@ function resolveShoot() {
       courtTo: fromSpot,
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "The defense wasn't out of position at all, and they made you pay for the quick trigger.",
-      coach: "Coach's tip: pulling up right away only works if the defense hasn't set up yet. Against a set defense, a quick shot is the lowest-percentage option on this list.",
+      coach: "Coach's tip: pulling up off the catch only works if the defense hasn't established its shell yet. Against a set defense, the quick pull-up is the lowest-percentage read on this list.",
       onContinue: () => endYourPossession(false)
     });
     return;
@@ -2376,8 +2523,8 @@ function resolveShoot() {
           ? "You caught the defense napping and got a great look early. Nothing wrong with taking a good shot the moment you see it."
           : "Bold, quick shot — and it went in. Sometimes confidence is exactly the right read."),
       coach: state.quality === 'fresh'
-        ? "Coach's tip: a quick, open shot early in a possession is still a good shot if the defense is caught off guard. \"Early\" isn't the same as \"bad\" — it's about whether you're open."
-        : "Coach's tip: quick shots against a set defense go in less often on average — but every possession is its own roll. Over a whole game, working the ball usually pays off more.",
+        ? "Coach's tip: a catch-and-shoot look early in the clock is still a good read if the defense hasn't closed out yet. \"Early\" isn't the same as \"bad\" — it's about whether the closeout actually arrived."
+        : "Coach's tip: pull-ups against a set shell convert less often on average — but every possession is its own roll. Across a full game, ball reversal before the shot usually pays off more.",
       onContinue: () => endYourPossession(true)
     });
   } else {
@@ -2392,7 +2539,7 @@ function resolveShoot() {
       courtTo: fromSpot,
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "Contested look, and it rimmed out. The defense was right there.",
-      coach: "Coach's tip: against a set, ready defense, a quick shot is usually lower-percentage than driving or working the ball first. It's not the wrong choice forever — just less likely to pay off early in a possession.",
+      coach: "Coach's tip: against a set, established defense, the quick pull-up is usually lower-percentage than penetrating or reversing the ball first. It's not the wrong read forever — just less likely to pay off early in the clock.",
       onContinue: () => endYourPossession(false)
     });
   }
@@ -2423,7 +2570,7 @@ function resolveShoot3() {
       courtTo: fromSpot,
       fireCooled: fireChange === 'cooled' ? 'home' : null,
       body: "They closed out faster than you read it. Even from outside, a closeout that quick can get a hand on it.",
-      coach: "Coach's tip: a three only stays low-risk if the closeout is actually late. If the defense is tight, the block risk goes up like any contested shot.",
+      coach: "Coach's tip: the three stays low-risk only if the closeout is genuinely late. Once the defender contests on time, the block risk goes up like any heavily guarded attempt.",
       onContinue: () => endYourPossession(false)
     });
     return;
@@ -2471,7 +2618,7 @@ function resolveShoot3() {
       body: wasSagging
         ? "You had the space, just didn't have the touch this time. Still the right shot to take."
         : "Contested from outside, and it didn't fall. Tough shot to make when they're up in your space.",
-      coach: "Coach's tip: a missed three you were right to take is still a good process — the shot selection was correct even when the result wasn't.",
+      coach: "Coach's tip: a missed three you were right to take is still good process — the shot selection was correct on the catch even when the result wasn't.",
       onContinue: () => endYourPossession(false)
     });
   }
@@ -2492,7 +2639,7 @@ function resolveFoulDrawn(actionDesc, fromSpot) {
     courtFrom: fromSpot,
     courtTo: 'rim',
     body: `You drew contact on the ${actionDesc}. Free throws coming up.`,
-    coach: "Coach's tip: attacking the basket doesn't just create shots — it creates fouls. Getting to the free throw line is one of the most efficient ways to score, and it puts the other team's bench under pressure as fouls add up.",
+    coach: "Coach's tip: attacking the rim doesn't just create shots — it creates fouls. Getting to the free-throw line is one of the most efficient ways to score, and it puts the opposing bench in foul trouble as the whistles add up.",
     onContinue: () => goToFreeThrows()
   });
 }
@@ -2630,7 +2777,17 @@ function showResultCard(opts) {
   if (opts.fireEvent) SFX.catchFire();
 
   mountCard((card) => {
-    card.appendChild(speakerBadge('announcer'));
+    const badgeRow = document.createElement('div');
+    badgeRow.style.display = 'flex';
+    badgeRow.style.alignItems = 'center';
+    badgeRow.style.gap = '8px';
+    badgeRow.appendChild(speakerBadge('announcer'));
+    const posableActions = ['drive', 'shoot', 'shoot3', 'postup', 'pass'];
+    const baseAction = (opts.action || '').replace('-miss', '');
+    if (!isAwayResult && posableActions.includes(baseAction)) {
+      badgeRow.appendChild(buildPlayerFigure(state.playerRole, baseAction, 26));
+    }
+    card.appendChild(badgeRow);
 
     if (opts.fireEvent) {
       const banner = document.createElement('div');
@@ -2773,7 +2930,13 @@ function showCpuPossession() {
 
 function showDefenseCard() {
   mountCard((card) => {
-    card.appendChild(speakerBadge('you'));
+    const badgeRow = document.createElement('div');
+    badgeRow.style.display = 'flex';
+    badgeRow.style.alignItems = 'center';
+    badgeRow.style.gap = '8px';
+    badgeRow.appendChild(speakerBadge('you'));
+    badgeRow.appendChild(buildPlayerFigure(state.playerRole, 'idle', 26));
+    card.appendChild(badgeRow);
 
     const eyebrow = document.createElement('div');
     eyebrow.className = 'eyebrow away-tag';
