@@ -1,0 +1,3897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#161A1D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Point Guard — Ironside Basketball</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+  :root {
+    --court:       #C8762A;
+    --court-d:     #A0541C;
+    --court-line:  #F4E3C8;
+    --ink:         #1A1410;
+    --paper:       #FFF8EC;
+    --board:       #161A1D;
+    --board-d:     #0D0F11;
+    --home:        #E0481F;
+    --home-d:      #A8300E;
+    --away:        #1C8CD6;
+    --away-d:      #115C92;
+    --good:        #3FA34D;
+    --good-d:      #2C7C38;
+    --warn:        #F0A202;
+    --warn-d:      #C5840A;
+    --muted:       #8A8178;
+    --fire:        #FF5E1A;
+    --fire-d:      #C73E0A;
+    --fire-glow:   #FFC247;
+    --crowd-1:     #2A2F38;
+    --crowd-2:     #3A4250;
+    --crowd-3:     #4C5668;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--board-d);
+  }
+
+  body {
+    font-family: Arial, "Helvetica Neue", sans-serif;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .display {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Court background ---------- */
+  #bg {
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 38px),
+      linear-gradient(160deg, var(--court) 0%, var(--court-d) 100%);
+    overflow: hidden;
+    z-index: 0;
+  }
+  #bg svg {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 130vmin;
+    height: 130vmin;
+    transform: translate(-50%,-50%);
+    opacity: 0.16;
+  }
+
+  /* ---------- App shell ---------- */
+  #app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    height: 100%;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 0px) 14px env(safe-area-inset-bottom, 14px);
+  }
+
+  /* ---------- Scoreboard ---------- */
+  #scoreboard {
+    flex-shrink: 0;
+    margin-top: env(safe-area-inset-top, 14px);
+    background: linear-gradient(180deg, var(--board) 0%, var(--board-d) 100%);
+    border-radius: 14px;
+    padding: 0 14px 10px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.05);
+    color: #fff;
+    overflow: hidden;
+  }
+
+  .crowd-strip {
+    width: calc(100% + 28px);
+    margin: 0 -14px 8px;
+    height: 26px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #15181C 0%, #0D0F11 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .crowd-strip svg { width: 100%; height: 100%; display: block; }
+  .crowd-dot {
+    animation: crowdBob 1.8s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes crowdBob {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.85; }
+    50%      { transform: translateY(-1.5px) scale(1.08); opacity: 1; }
+  }
+  .crowd-strip.cheering .crowd-dot {
+    animation: crowdCheer 0.35s ease-in-out infinite;
+  }
+  @keyframes crowdCheer {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-4px) scale(1.25); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .crowd-dot { animation: none !important; }
+  }
+
+  .sb-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2px;
+  }
+  .sb-logo svg { display: block; }
+
+  .sb-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .sb-team {
+    flex: 1;
+    text-align: center;
+  }
+  .sb-team .label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 2px;
+  }
+  .sb-team.home .label { color: var(--home); }
+  .sb-team.away .label { color: #6E9CC9; }
+  .sb-team .score {
+    font-size: 34px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .heat-row {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 3px;
+    height: 12px;
+  }
+  .heat-flame {
+    font-size: 11px;
+    opacity: 0.18;
+    filter: grayscale(1);
+    line-height: 1;
+    transition: opacity 0.3s, filter 0.3s;
+  }
+  .heat-flame.lit {
+    opacity: 1;
+    filter: grayscale(0);
+  }
+  .heat-flame.on-fire {
+    animation: flameFlicker 0.7s ease-in-out infinite;
+  }
+  @keyframes flameFlicker {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50%      { transform: scale(1.18) translateY(-1px); }
+  }
+
+  .sb-team.on-fire .score {
+    color: var(--fire-glow);
+    text-shadow: 0 0 10px rgba(255,94,26,0.8), 0 0 18px rgba(255,94,26,0.4);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .heat-flame.on-fire { animation: none !important; }
+  }
+
+  .sb-mid {
+    text-align: center;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .sb-mid .q {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--warn);
+  }
+  .sb-mid .clock {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 1px;
+  }
+
+  .momentum-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 5px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .momentum-label { font-size: 8.5px; opacity: 0.85; }
+  .momentum-arrow {
+    font-size: 11px;
+    letter-spacing: -1px;
+  }
+  .momentum-row.momentum-home,
+  .momentum-row.momentum-home .momentum-arrow {
+    color: #4ADE80;
+  }
+  .momentum-row.momentum-away,
+  .momentum-row.momentum-away .momentum-arrow {
+    color: #4ADE80;
+  }
+  .momentum-row.momentum-even {
+    color: rgba(255,255,255,0.4);
+  }
+  .momentum-dash { font-size: 10px; }
+
+  .sb-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+  }
+  .mute-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .mute-btn:active { transform: scale(0.9); }
+  .sb-meta .grp { display: flex; align-items: center; gap: 5px; }
+  .timeout-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--warn);
+    display: inline-block;
+  }
+  .timeout-dot.used { background: rgba(255,255,255,0.2); }
+  .foul-count { font-weight: bold; color: #fff; }
+  .foul-count.bonus { color: var(--warn); }
+
+  /* ---------- Card stage ---------- */
+  #maincontent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  #courtpanel {
+    display: none;
+  }
+
+  #stage {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    margin-top: 14px;
+  }
+
+  /* Desktop: widen the whole shell and split into a persistent
+     court pane (always visible) + a narrower card pane beside it. */
+  @media (min-width: 980px) {
+    #app { max-width: 1180px; max-height: 800px; }
+    #maincontent {
+      flex-direction: row;
+      gap: 18px;
+      margin-top: 14px;
+    }
+    #courtpanel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1.35;
+      min-width: 0;
+      background: linear-gradient(180deg, var(--board) 0%, var(--board-d) 100%);
+      border-radius: 16px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.05);
+      padding: 22px;
+    }
+    #courtpanel .court-diagram-wrap.fullcourt {
+      max-width: none;
+      width: 100%;
+      height: 260px;
+    }
+    #courtpanel .court-diagram-wrap.fullcourt svg {
+      min-height: 0;
+      width: 100%;
+      height: 205px;
+    }
+    #stage {
+      flex: 1;
+      margin-top: 0;
+      max-width: 460px;
+    }
+    /* In-card court diagrams are redundant once the persistent
+       panel is showing the same thing — hide them on desktop. */
+    .card .court-diagram-wrap.fullcourt {
+      display: none;
+    }
+    /* Compact vertical rhythm so a full decision card fits without
+       scrolling on a typical laptop screen. */
+    .card { padding: 18px 26px 18px; }
+    .btn-grid { gap: 7px; margin-top: 10px; }
+    button.act { padding: 10px 12px; font-size: 14px; }
+    button.act .sub { font-size: 10px; }
+    .headline { font-size: 21px; margin-bottom: 8px; }
+    .eyebrow { margin-bottom: 5px; }
+    .awareness-tip { padding: 6px 10px; font-size: 12px; margin-bottom: 6px; }
+    .hint-btn { padding: 7px 10px; font-size: 12px; margin-top: 4px; }
+  }
+
+  .card {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    background: var(--paper);
+    border-radius: 18px;
+    padding: 26px 22px 22px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 2px 0 rgba(255,255,255,0.5) inset;
+    display: flex;
+    flex-direction: column;
+    min-height: 62%;
+    max-height: 100%;
+    overflow-y: auto;
+    border-top: 5px solid var(--home);
+  }
+  .card.cpu-turn { border-top-color: var(--away); }
+  .card.neutral-turn { border-top-color: var(--warn); }
+
+  .card.enter { animation: cardIn 0.4s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(calc(-50% + 16px)) scale(0.97); }
+    to   { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+  .card.leaving { animation: cardOut 0.22s ease forwards; }
+  @keyframes cardOut {
+    from { opacity: 1; transform: translateY(-50%) scale(1); }
+    to   { opacity: 0; transform: translateY(calc(-50% - 12px)) scale(0.97); }
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .eyebrow.home-tag { color: var(--home-d); }
+  .eyebrow.away-tag { color: var(--away); }
+  .eyebrow.coach-tag { color: var(--warn-d); }
+
+  .headline {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 26px;
+    line-height: 1.12;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 0 0 12px;
+    letter-spacing: 0.01em;
+  }
+  .headline.good { color: var(--good-d); }
+  .headline.bad { color: var(--home-d); }
+
+  .body-text {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #4A4036;
+    margin: 0 0 6px;
+  }
+
+  .quality-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 14px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .quality-bars { display: flex; gap: 3px; }
+  .qbar { width: 16px; height: 7px; border-radius: 3px; background: rgba(0,0,0,0.12); }
+  .qbar.fill-low { background: var(--home); }
+  .qbar.fill-mid { background: var(--warn); }
+  .qbar.fill-high { background: var(--good); }
+
+  .awareness-row {
+    display: flex;
+    gap: 14px;
+    margin: 2px 0 12px;
+    flex-wrap: wrap;
+  }
+  .awareness-meter {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .awareness-meter .aw-label { white-space: nowrap; }
+  .awareness-tip {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #5A5048;
+    background: rgba(240,162,2,0.10);
+    border-radius: 9px;
+    padding: 8px 11px;
+    margin: 0 0 12px;
+  }
+
+  .posture-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    line-height: 1.3;
+    color: #4A4438;
+    background: rgba(0,0,0,0.04);
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin: 0 0 7px;
+  }
+  .posture-row .posture-icon { font-size: 13px; flex-shrink: 0; }
+
+  /* ---------- Speaker badge: who is currently talking ---------- */
+  .speaker-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px 3px 4px;
+    border-radius: 999px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .speaker-badge .sb-avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1.5px rgba(255,255,255,0.6) inset;
+  }
+  .speaker-badge.speaker-you { background: rgba(224,72,31,0.14); color: var(--home-d); }
+  .speaker-badge.speaker-you .sb-avatar { background: var(--home); }
+  .speaker-badge.speaker-coach { background: rgba(240,162,2,0.16); color: var(--warn-d); }
+  .speaker-badge.speaker-coach .sb-avatar { background: var(--warn-d); }
+  .speaker-badge.speaker-away { background: rgba(28,140,214,0.14); color: var(--away-d); }
+  .speaker-badge.speaker-away .sb-avatar { background: var(--away); }
+  .speaker-badge.speaker-announcer { background: rgba(0,0,0,0.06); color: var(--ink); }
+  .speaker-badge.speaker-announcer .sb-avatar { background: #5C5048; }
+
+  .shot-clock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-family: "Arial Black", Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+  .shot-clock-badge.sc-normal { background: rgba(0,0,0,0.06); color: var(--ink); }
+  .shot-clock-badge.sc-warning { background: rgba(240,162,2,0.18); color: var(--warn-d); }
+  .shot-clock-badge.sc-critical {
+    background: rgba(214,40,40,0.16);
+    color: var(--home-d);
+    animation: scPulse 0.7s ease-in-out infinite;
+  }
+  @keyframes scPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shot-clock-badge.sc-critical { animation: none !important; }
+  }
+
+  .hint-btn {
+    width: 100%;
+    border: 1.5px dashed var(--warn-d);
+    background: rgba(240,162,2,0.08);
+    color: var(--warn-d);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 12.5px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: filter 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .hint-btn:active { filter: brightness(0.95); }
+  .hint-btn:disabled { opacity: 0.4; cursor: default; }
+  .hint-btn .hint-cost {
+    font-size: 10.5px;
+    background: var(--good-d);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .hint-reveal {
+    background: #FFF4DE;
+    border: 1.5px solid var(--warn-d);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #4A3A1A;
+  }
+  .hint-reveal .hint-rec {
+    font-weight: bold;
+    color: var(--warn-d);
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .decision-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 4px 0 8px;
+  }
+  .decision-pct {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 38px;
+    color: var(--good-d);
+    line-height: 1;
+  }
+  .decision-pct-label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .decision-example {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #4A4438;
+    background: rgba(201,81,46,0.06);
+    border-left: 3px solid var(--home);
+    border-radius: 0 8px 8px 0;
+    padding: 8px 11px;
+    margin: 6px 0;
+  }
+
+  .coach-box {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #5A4628;
+    background: #FBE8C2;
+    border: 1.5px dashed var(--warn-d);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin: 10px 0 4px;
+  }
+  .coach-box strong { color: var(--warn-d); }
+
+  .fire-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(90deg, var(--fire-d) 0%, var(--fire) 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 9px 13px;
+    margin: 0 0 12px;
+    font-weight: bold;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 6px 16px rgba(255,94,26,0.35);
+    animation: fireBannerPulse 1.4s ease-in-out infinite;
+  }
+  .fire-banner.away-fire {
+    background: linear-gradient(90deg, var(--away-d) 0%, var(--away) 100%);
+    box-shadow: 0 6px 16px rgba(30,58,95,0.35);
+  }
+  .fire-banner .flame-icon {
+    font-size: 18px;
+    animation: flameFlicker 0.7s ease-in-out infinite;
+  }
+  @keyframes fireBannerPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.015); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fire-banner, .fire-banner .flame-icon { animation: none !important; }
+  }
+
+  .play-log {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #6B5F4E;
+    background: rgba(0,0,0,0.04);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 6px 0 4px;
+  }
+
+  .spacer { flex: 1; }
+
+  /* ---------- Buttons ---------- */
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .btn-col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+
+  button.act {
+    border: none;
+    border-radius: 12px;
+    padding: 14px 10px;
+    font-size: 15px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.1s;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  button.act:active { transform: scale(0.96); filter: brightness(0.94); }
+  button.act .sub { font-size: 11px; font-weight: normal; opacity: 0.85; }
+
+  button.act.primary { background: var(--home); color: #fff; }
+  button.act.secondary { background: var(--away); color: #fff; }
+  button.act.tertiary { background: #2B2118; color: #fff; }
+  button.act.warn { background: var(--warn); color: #2B2118; }
+  button.act.three { background: #6B3FA0; color: #fff; }
+  button.act.ghost {
+    background: transparent;
+    border: 1.5px solid rgba(0,0,0,0.18);
+    color: var(--ink);
+  }
+  button.act.full { grid-column: 1 / -1; }
+
+  button.continue-btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 16px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    background: var(--ink);
+    color: #fff;
+    cursor: pointer;
+    margin-top: 18px;
+    transition: transform 0.1s, filter 0.1s;
+  }
+  button.continue-btn:active { transform: scale(0.97); filter: brightness(1.15); }
+
+  /* result badges */
+  .result-badge {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+  }
+  .result-badge.make { background: var(--good); }
+  .result-badge.miss { background: #B0A593; }
+  .result-badge.turnover { background: var(--home); }
+  .result-badge.foul { background: var(--warn); }
+
+  /* ---------- Animated action stage ---------- */
+  .action-stage-wrap {
+    width: 100%;
+    height: 96px;
+    margin: 2px 0 12px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #2A2420 0%, #1A1612 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+    position: relative;
+  }
+  .action-stage-wrap svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  @keyframes ballArc {
+    0%   { offset-distance: 0%; opacity: 0; }
+    8%   { opacity: 1; }
+    92%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .ball-on-path {
+    offset-rotate: 0deg;
+    animation: ballArc 1.1s ease-in-out infinite;
+  }
+
+  @keyframes handRelease {
+    0%, 15%  { transform: rotate(0deg); }
+    35%      { transform: rotate(-38deg); }
+    60%, 100% { transform: rotate(0deg); }
+  }
+  .hand-release {
+    animation: handRelease 1.1s ease-in-out infinite;
+    transform-origin: 50% 100%;
+  }
+
+  @keyframes rimFlash {
+    0%, 55%  { opacity: 0; }
+    62%, 75% { opacity: 1; }
+    85%, 100% { opacity: 0; }
+  }
+  .rim-flash { animation: rimFlash 1.1s ease-in-out infinite; }
+
+  @keyframes passSlide {
+    0%, 8%   { offset-distance: 0%; opacity: 0; }
+    14%      { opacity: 1; }
+    86%      { opacity: 1; }
+    94%, 100% { offset-distance: 100%; opacity: 0; }
+  }
+  .ball-on-pass-path { animation: passSlide 1s ease-in-out infinite; }
+
+  @keyframes dribbleBounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(14px); }
+  }
+  .dribble-ball { animation: dribbleBounce 0.55s ease-in-out infinite; }
+
+  @keyframes stripShake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    20%      { transform: translateX(-3px) rotate(-8deg); }
+    40%      { transform: translateX(3px) rotate(8deg); }
+    60%      { transform: translateX(-2px) rotate(-5deg); }
+    80%      { transform: translateX(2px) rotate(5deg); }
+  }
+  .strip-shake { animation: stripShake 0.5s ease-in-out infinite; }
+
+  @keyframes flyOff {
+    0%   { offset-distance: 0%; opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .ball-fly-off {
+    animation: flyOff 0.9s ease-in infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ball-on-path, .hand-release, .rim-flash, .ball-on-pass-path,
+    .dribble-ball, .strip-shake, .ball-fly-off { animation: none !important; }
+  }
+
+  /* final score card */
+  .final-score {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0 16px;
+  }
+  .final-score .num {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 44px;
+  }
+  .final-score .vs { font-size: 16px; color: var(--muted); font-weight: bold; }
+
+  /* ---------- Tip-off intro screen ---------- */
+  .tipoff-matchup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin: 6px 0 18px;
+  }
+  .tipoff-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  .tipoff-name {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+  .tipoff-city {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .tipoff-vs {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .tipoff-taglines {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #4A4036;
+    text-align: center;
+    background: rgba(0,0,0,0.035);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 4px 0 14px;
+  }
+
+  /* ---------- Court position diagram ---------- */
+  .court-diagram-wrap {
+    margin: 2px 0 14px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #B8691F 0%, #9C5418 100%);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  }
+  .court-diagram-wrap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .court-line {
+    fill: none;
+    stroke: rgba(244,227,200,0.55);
+    stroke-width: 1.6;
+  }
+  .court-fill-key {
+    fill: rgba(244,227,200,0.08);
+  }
+  .court-label {
+    font-family: Arial, sans-serif;
+    font-size: 6px;
+    font-weight: bold;
+    fill: rgba(244,227,200,0.45);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .court-marker {
+    transition: cx 0.5s ease, cy 0.5s ease;
+  }
+  .court-marker-home {
+    fill: var(--home);
+    stroke: #fff;
+    stroke-width: 1.4;
+  }
+  .court-marker-away {
+    fill: var(--away);
+    stroke: #fff;
+    stroke-width: 1.4;
+  }
+  .court-marker.has-ball {
+    stroke: #FFD23F;
+    stroke-width: 2.2;
+  }
+  .ball-indicator {
+    fill: #E8762C;
+    stroke: #3A2410;
+    stroke-width: 0.6;
+  }
+  .jersey-blob { transition: opacity 0.3s ease; }
+  .jersey-shade { pointer-events: none; }
+  .jersey-number {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    font-size: 4.6px;
+    fill: rgba(255,255,255,0.92);
+    pointer-events: none;
+    user-select: none;
+  }
+  .court-marker-glow {
+    animation: markerPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes markerPulse {
+    0%, 100% { opacity: 0.35; r: 9; }
+    50%      { opacity: 0.05; r: 14; }
+  }
+  .court-trail {
+    stroke: rgba(244,227,200,0.85);
+    stroke-width: 1.4;
+    stroke-dasharray: 3 2.5;
+    fill: none;
+  }
+  .court-trail-arrowhead {
+    fill: rgba(244,227,200,0.85);
+  }
+  .court-diagram-wrap.fullcourt {
+    perspective: 600px;
+    background: linear-gradient(180deg, #C8762A 0%, #9C5418 100%);
+    padding: 8px 0 4px;
+    height: 150px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .court-diagram-wrap.fullcourt svg {
+    width: 100%;
+    height: 118px;
+    flex-shrink: 0;
+    transform: rotateX(28deg) scale(1.02);
+    transform-origin: 50% 100%;
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card.enter, .card.leaving { animation: none !important; }
+    .court-marker-glow { animation: none !important; }
+  }
+
+  @media (max-height: 700px) {
+    .headline { font-size: 22px; }
+    .card { padding: 20px 18px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="60" fill="none" stroke="#F4E3C8" stroke-width="2.5"/>
+    <circle cx="100" cy="100" r="3" fill="#F4E3C8"/>
+    <line x1="0" y1="100" x2="200" y2="100" stroke="#F4E3C8" stroke-width="2.5"/>
+  </svg>
+</div>
+
+<div id="app">
+  <div id="scoreboard"></div>
+  <div id="maincontent">
+    <div id="courtpanel"></div>
+    <div id="stage"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   POINT GUARD — a choose-your-own-adventure youth basketball game
+   You control the Home team's point guard. Possession-based engine.
+   ========================================================= */
+
+const POSSESSIONS_PER_QUARTER = 5;
+const TOTAL_QUARTERS = 4;
+const STARTING_TIMEOUTS = 3;
+const HEAT_TO_CATCH_FIRE = 3;
+
+// Original fictional team identities — no real-world league, team, or
+// player branding. Colors match the --home / --away CSS variables.
+const TEAMS = {
+  home: {
+    name: 'IRONSIDE',
+    city: 'Foundry City',
+    tagline: 'Hits Hard. Every Possession.',
+    primary: '#E0481F',
+    dark: '#A8300E',
+    accent: '#FFD23F',
+  },
+  away: {
+    name: 'VOLTAGE',
+    city: 'Circuit Heights',
+    tagline: 'Fast. Bright. Electric.',
+    primary: '#1C8CD6',
+    dark: '#115C92',
+    accent: '#D6F0FF',
+  },
+};
+
+const state = {
+  quarter: 1,
+  possessionsLeftThisQuarter: POSSESSIONS_PER_QUARTER,
+  score: { home: 0, away: 0 },
+  timeouts: { home: STARTING_TIMEOUTS },
+  fouls: { home: 0, away: 0 }, // team fouls, reset each quarter
+  quality: 'fresh',            // fresh -> working (best) or rushed (worst)
+  passesThisPossession: 0,
+  ballSpot: 'topOfKey',         // current court position key, see OFFENSE_SPOTS_RIGHT
+  cpuRun: 0,                   // consecutive CPU scores, for timeout-on-a-run logic
+  heat: { home: 0, away: 0 },        // consecutive scoring possessions
+  onFire: { home: false, away: false },
+  log: [],
+  lastFoulOfferedQuarter: -1,
+  cpuDefenseScheme: 'man',      // the scheme CPU's defense uses against YOUR offense (AI-controlled)
+  homeDefenseScheme: 'man',     // the scheme YOU choose against CPU's offense (player-controlled)
+  pendingCheer: false,
+  lastAction: null,             // most recent resolved action, drives player movement reactions
+  defensePosture: 'neutral',    // 'tight' | 'neutral' | 'sagging' — how the defense is currently playing you
+  offenseProcess: 2,            // 0-5 accumulating "good process" score this possession
+  decisionLog: [],              // every shot attempt this game, graded against the EV-optimal choice
+  cpuActionTally: { drive: {att:0,made:0}, shoot: {att:0,made:0}, postup: {att:0,made:0} },
+  momentum: 0, // -3..+3, negative = Voltage has it, positive = Ironside has it, 0 = even
+  playerRole: 'slasher', // randomly reassigned each game at tip-off
+  shotClock: 35,
+  drawnUpBoost: 0, // temporary odds boost while executing a drawn-up play out of a timeout
+};
+const SHOT_CLOCK_START = 35;
+const SHOT_CLOCK_PER_ACTION = 7; // ticks down by this much every time a decision card is shown
+
+// ---------------------------------------------------------
+// Arc state — persists ACROSS full games within this session.
+// Voltage's tendencies drift game to game based on what actually
+// scored on you last time, within sane bounds.
+// ---------------------------------------------------------
+const ARC_TOTAL_GAMES = 5;
+const arcState = {
+  gameNumber: 1,
+  wins: 0,
+  losses: 0,
+  gameSummaries: [],     // { gameNumber, won, scoreHome, scoreAway, cpuActionSuccess: {drive,shoot,postup} }
+  cpuActionWeightMods: { drive: 1, shoot: 1, postup: 1 }, // multiplicative drift, clamped 0.5-1.5
+  allDecisions: [],      // decisionLog entries pooled across the whole arc, for the arc-end report
+};
+
+const stage = document.getElementById('stage');
+const scoreboardEl = document.getElementById('scoreboard');
+let currentCardEl = null;
+
+// ---------------------------------------------------------
+// Scoreboard rendering
+// ---------------------------------------------------------
+function momentumIndicator() {
+  const m = state.momentum;
+  if (m >= 1) {
+    const strength = Math.min(3, m);
+    return `<div class="momentum-row momentum-home" title="Ironside has momentum">
+      <span class="momentum-arrow">${'◀'.repeat(strength)}</span>
+      <span class="momentum-label">MOMENTUM</span>
+    </div>`;
+  } else if (m <= -1) {
+    const strength = Math.min(3, Math.abs(m));
+    return `<div class="momentum-row momentum-away" title="Voltage has momentum">
+      <span class="momentum-label">MOMENTUM</span>
+      <span class="momentum-arrow">${'▶'.repeat(strength)}</span>
+    </div>`;
+  }
+  return `<div class="momentum-row momentum-even" title="Momentum is even">
+    <span class="momentum-dash">—</span>
+    <span class="momentum-label">MOMENTUM EVEN</span>
+    <span class="momentum-dash">—</span>
+  </div>`;
+}
+
+function renderScoreboard() {
+  const clockLabel = state.possessionsLeftThisQuarter > 0
+    ? state.possessionsLeftThisQuarter + ' left'
+    : 'End of Q' + state.quarter;
+
+  const toMarkup = Array.from({ length: STARTING_TIMEOUTS }, (_, i) =>
+    `<span class="timeout-dot ${i < state.timeouts.home ? '' : 'used'}"></span>`
+  ).join('');
+
+  const homeBonus = state.fouls.home >= 5;
+  const awayBonus = state.fouls.away >= 5;
+
+  function heatRow(team) {
+    const heat = state.heat[team];
+    const onFire = state.onFire[team];
+    let flames = '';
+    for (let i = 0; i < HEAT_TO_CATCH_FIRE; i++) {
+      const lit = i < heat || onFire;
+      flames += `<span class="heat-flame ${lit ? 'lit' : ''} ${onFire ? 'on-fire' : ''}">🔥</span>`;
+    }
+    return `<div class="heat-row">${flames}</div>`;
+  }
+
+  scoreboardEl.innerHTML = `
+    <div class="crowd-strip">${crowdSvg()}</div>
+    <div class="sb-teams">
+      <div class="sb-team home ${state.onFire.home ? 'on-fire' : ''}">
+        <div class="sb-logo">${teamLogoSvg('home', 26)}</div>
+        <div class="label">${TEAMS.home.name}</div>
+        <div class="score display">${state.score.home}</div>
+        ${heatRow('home')}
+      </div>
+      <div class="sb-mid">
+        <div class="q">QUARTER ${state.quarter}/${TOTAL_QUARTERS}</div>
+        <div class="clock">${clockLabel}</div>
+        ${momentumIndicator()}
+      </div>
+      <div class="sb-team away ${state.onFire.away ? 'on-fire' : ''}">
+        <div class="sb-logo">${teamLogoSvg('away', 26)}</div>
+        <div class="label">${TEAMS.away.name}</div>
+        <div class="score display">${state.score.away}</div>
+        ${heatRow('away')}
+      </div>
+    </div>
+    <div class="sb-meta">
+      <div class="grp">Timeouts ${toMarkup}</div>
+      <div class="grp">Fouls: <span class="foul-count ${awayBonus ? 'bonus' : ''}">${state.fouls.away} AWAY</span> · <span class="foul-count ${homeBonus ? 'bonus' : ''}">${state.fouls.home} HOME</span></div>
+      <button class="mute-btn" onclick="toggleMute()" aria-label="Toggle sound">${SFX.muted ? '🔇' : '🔊'}</button>
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------
+// Crowd silhouette strip — simple tiered dot-rows behind the scoreboard,
+// for arena atmosphere. Pure SVG, no external images.
+// ---------------------------------------------------------
+function crowdSvg() {
+  const rows = 3;
+  const perRow = 22;
+  let dots = '';
+  const colors = ['var(--crowd-1)', 'var(--crowd-2)', 'var(--crowd-3)'];
+  for (let r = 0; r < rows; r++) {
+    const y = 4 + r * 7;
+    const offset = (r % 2) * 4;
+    for (let i = 0; i < perRow; i++) {
+      const x = offset + i * 16;
+      const delay = ((i + r * 3) % 6) * 0.15;
+      dots += `<circle class="crowd-dot" cx="${x}" cy="${y}" r="2.6" fill="${colors[r]}" style="animation-delay:${delay.toFixed(2)}s;"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 340 26" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${dots}</svg>`;
+}
+
+// ---------------------------------------------------------
+// Card helpers
+// ---------------------------------------------------------
+function mountCard(buildFn, turnClass) {
+  const card = document.createElement('div');
+  card.className = 'card enter' + (turnClass ? ' ' + turnClass : '');
+  buildFn(card);
+  stage.appendChild(card);
+
+  if (currentCardEl) {
+    const old = currentCardEl;
+    old.classList.remove('enter');
+    old.classList.add('leaving');
+    setTimeout(() => old.remove(), 240);
+  }
+  currentCardEl = card;
+  renderScoreboard();
+  syncCourtPanel();
+
+  if (state.pendingCheer) {
+    state.pendingCheer = false;
+    triggerCrowdCheer();
+  }
+
+  if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
+}
+
+function syncCourtPanel() {
+  const panel = document.getElementById('courtpanel');
+  if (!panel) return;
+  panel.innerHTML = '';
+  if (lastCourtOpts) {
+    panel.appendChild(buildFullCourtDiagram(lastCourtOpts));
+  }
+}
+
+
+function spacer(card) {
+  const s = document.createElement('div');
+  s.className = 'spacer';
+  card.appendChild(s);
+  return s;
+}
+
+function continueButton(card, label, onClick) {
+  const btn = document.createElement('button');
+  btn.className = 'continue-btn';
+  btn.textContent = label;
+  btn.addEventListener('click', onClick);
+  card.appendChild(btn);
+}
+
+function qualityMeter(card) {
+  const wrap = document.createElement('div');
+  wrap.className = 'quality-meter';
+  // Display order from worst to best look: rushed -> fresh -> working
+  const rank = { rushed: 0, fresh: 1, working: 2 };
+  const labelMap = { fresh: 'Set offense', working: 'Defense scrambling', rushed: 'Rushing it' };
+  const fillClassMap = { rushed: 'fill-low', fresh: 'fill-mid', working: 'fill-high' };
+  const filled = rank[state.quality] + 1; // 1, 2, or 3 bars filled
+  const fillClass = fillClassMap[state.quality];
+  let bars = '';
+  for (let i = 0; i < 3; i++) {
+    bars += `<div class="qbar ${i < filled ? fillClass : ''}"></div>`;
+  }
+  wrap.innerHTML = `<div class="quality-bars">${bars}</div><span>${labelMap[state.quality]}</span>`;
+  card.appendChild(wrap);
+}
+
+// ---------------------------------------------------------
+// Full-court position diagram (angled broadcast view)
+// viewBox 0-300 (length, home basket left, away basket right) x
+// 0-150 (depth, with a slight perspective taper applied per-row
+// so the court reads as viewed from an elevated angle rather than
+// straight overhead).
+// ---------------------------------------------------------
+const FULLCOURT_W = 300;
+const FULLCOURT_H = 150;
+const MIDCOURT_X = FULLCOURT_W / 2;
+
+// Ball-spot keys reused from the half-court system, now mapped into
+// full-court offensive-end coordinates. 'home' attacks the right basket,
+// 'away' attacks the left basket (mirrored), matching a broadcast view
+// where home is always shooting toward the right.
+const OFFENSE_SPOTS_RIGHT = {
+  topOfKey:   { x: 222, y: 75 },
+  wingLeft:   { x: 232, y: 36 },
+  wingRight:  { x: 232, y: 114 },
+  cornerLeft: { x: 268, y: 18 },
+  cornerRight:{ x: 268, y: 132 },
+  block:      { x: 256, y: 75 },
+  blockLeft:  { x: 252, y: 58 },
+  blockRight: { x: 252, y: 92 },
+  rim:        { x: 270, y: 75 },
+  ftLine:     { x: 248, y: 75 },
+  dunker:     { x: 278, y: 75 },
+};
+
+function mirrorX(x) { return FULLCOURT_W - x; }
+
+function offenseSpotFor(team, key) {
+  const base = OFFENSE_SPOTS_RIGHT[key] || OFFENSE_SPOTS_RIGHT.topOfKey;
+  if (team === 'home') return { x: base.x, y: base.y };
+  return { x: mirrorX(base.x), y: base.y };
+}
+
+// Simple, legible 5-man spreads for both the team with the ball and
+// the team on defense. All 5 offensive players live in the frontcourt
+// (never camped at midcourt) and visibly shift based on the action
+// that just happened, so the floor actually reacts to what you did.
+function offensiveSpread(team, ballSpotKey, lastAction) {
+  const handler = offenseSpotFor(team, ballSpotKey);
+
+  // Base frontcourt spacing: two corners, the weak wing, the post,
+  // and the dunker spot — all genuinely past midcourt.
+  const spotKeys = ['cornerLeft', 'cornerRight', 'wingLeft', 'wingRight', 'block', 'dunker']
+    .filter(k => k !== ballSpotKey);
+
+  // Reaction to the last action: a drive or post-up collapses help
+  // defense, so a corner shooter relocates to the open corner/wing for
+  // the kick-out look. A pass redistributes everyone outward slightly.
+  let preferredKeys;
+  if (lastAction === 'drive' || lastAction === 'postup') {
+    preferredKeys = ['cornerLeft', 'cornerRight', 'wingLeft', 'dunker'];
+  } else if (lastAction === 'pass') {
+    preferredKeys = ['wingLeft', 'wingRight', 'cornerLeft', 'block'];
+  } else {
+    preferredKeys = ['cornerLeft', 'wingRight', 'block', 'dunker'];
+  }
+
+  const chosen = preferredKeys.filter(k => k !== ballSpotKey).slice(0, 4);
+  while (chosen.length < 4) {
+    const filler = spotKeys.find(k => !chosen.includes(k));
+    if (!filler) break;
+    chosen.push(filler);
+  }
+
+  const support = chosen.map(k => offenseSpotFor(team, k));
+  return [handler, ...support];
+}
+
+function defensiveSpread(team, ballSpotKey, scheme, offenseSpots) {
+  // Defense is the OTHER team from the ball-handler's team. Good defense
+  // sits BETWEEN the offensive player and the basket the defense is
+  // protecting. Two different reference points are used below, so two
+  // different signs are needed:
+  //  - dirFromAttacker: shifts a defender from the ATTACKER's spot back
+  //    toward the rim (goal-side position). Toward the rim = toward
+  //    higher x for home's attacking end, lower x for away's.
+  //  - dirFromRim: shifts a defender OUT from the rim toward the
+  //    perimeter (used for schemes described relative to the rim itself,
+  //    like packing the paint). This is the opposite sign.
+  const defTeam = team === 'home' ? 'away' : 'home';
+  const oppHandlerSpot = offenseSpots[0];
+  const dirFromAttacker = team === 'home' ? 1 : -1;
+  const dirFromRim = team === 'home' ? -1 : 1;
+  const dir = dirFromAttacker; // kept for the man-to-man/press math below
+  const rim = team === 'home' ? offenseSpotFor('home', 'rim') : offenseSpotFor('away', 'rim');
+
+  // Default: shade slightly toward the rim from each offensive player's
+  // real spot, i.e. genuine man-to-man positioning, not a generic shape.
+  const manSpread = [oppHandlerSpot, ...offenseSpots.slice(1)].map((spot, i) => {
+    const depth = i === 0 ? 12 : 9;
+    return { x: spot.x + dir * depth, y: spot.y + (spot.y > 75 ? -4 : (spot.y < 75 ? 4 : 0)) };
+  });
+
+  if (scheme === 'press') {
+    // step up tight on the ball-handler specifically, others stay matched up
+    const pressed = manSpread.slice();
+    pressed[0] = { x: oppHandlerSpot.x + dir * 18, y: oppHandlerSpot.y };
+    return pressed;
+  }
+  if (scheme === 'pack') {
+    // everyone collapses toward the rim, sitting just outside it on
+    // the perimeter side — conceding the perimeter, protecting the rim.
+    return [
+      { x: rim.x + dirFromRim*16, y: 75 },
+      { x: rim.x + dirFromRim*26, y: 58 },
+      { x: rim.x + dirFromRim*26, y: 92 },
+      { x: rim.x + dirFromRim*8,  y: 60 },
+      { x: rim.x + dirFromRim*8,  y: 90 },
+    ];
+  }
+  if (scheme === 'double_post') {
+    // two defenders collapse toward the block, others stay matched up
+    const blockSpot = team === 'home' ? offenseSpotFor('home','block') : offenseSpotFor('away','block');
+    const doubled = manSpread.slice();
+    doubled[1] = { x: blockSpot.x + dir*10, y: blockSpot.y - 8 };
+    doubled[2] = { x: blockSpot.x + dir*10, y: blockSpot.y + 8 };
+    return doubled;
+  }
+  // man-to-man: genuinely mirrors the real offensive spread
+  return manSpread;
+}
+
+function fullCourtSvgMarkup() {
+  const lineColor = '#F4E3C8';
+  const rimRight = offenseSpotFor('home', 'rim');
+  const rimLeft = offenseSpotFor('away', 'rim');
+  const ftRight = offenseSpotFor('home', 'ftLine');
+  const ftLeft = offenseSpotFor('away', 'ftLine');
+
+  function arcPath(cx, cy, r, flip) {
+    // simple semicircular three-point-ish arc, flipped for each end
+    const sign = flip ? -1 : 1;
+    return `M ${cx} ${cy-r} A ${r} ${r} 0 0 ${flip ? 0 : 1} ${cx} ${cy+r}`;
+  }
+
+  return `
+    <svg viewBox="0 0 ${FULLCOURT_W} ${FULLCOURT_H}" xmlns="http://www.w3.org/2000/svg">
+      <!-- outer boundary -->
+      <rect class="court-line" x="4" y="6" width="${FULLCOURT_W-8}" height="${FULLCOURT_H-12}"/>
+      <!-- midcourt line + circle -->
+      <line class="court-line" x1="${MIDCOURT_X}" y1="6" x2="${MIDCOURT_X}" y2="${FULLCOURT_H-6}"/>
+      <circle class="court-line" cx="${MIDCOURT_X}" cy="${FULLCOURT_H/2}" r="14"/>
+      <!-- left key/lane -->
+      <rect class="court-fill-key" x="4" y="${FULLCOURT_H/2-19}" width="48" height="38"/>
+      <rect class="court-line" x="4" y="${FULLCOURT_H/2-19}" width="48" height="38"/>
+      <circle class="court-line" cx="${ftLeft.x}" cy="${ftLeft.y}" r="13"/>
+      <!-- right key/lane -->
+      <rect class="court-fill-key" x="${FULLCOURT_W-52}" y="${FULLCOURT_H/2-19}" width="48" height="38"/>
+      <rect class="court-line" x="${FULLCOURT_W-52}" y="${FULLCOURT_H/2-19}" width="48" height="38"/>
+      <circle class="court-line" cx="${ftRight.x}" cy="${ftRight.y}" r="13"/>
+      <!-- three point arcs -->
+      <path class="court-line" d="M 14 38 A 60 60 0 0 0 14 112"/>
+      <path class="court-line" d="M ${FULLCOURT_W-14} 38 A 60 60 0 0 1 ${FULLCOURT_W-14} 112"/>
+      <!-- backboards + rims -->
+      <line class="court-line" x1="${rimLeft.x-9}" y1="${rimLeft.y-13}" x2="${rimLeft.x-9}" y2="${rimLeft.y+13}"/>
+      <circle class="court-line" cx="${rimLeft.x}" cy="${rimLeft.y}" r="3"/>
+      <line class="court-line" x1="${rimRight.x+9}" y1="${rimRight.y-13}" x2="${rimRight.x+9}" y2="${rimRight.y+13}"/>
+      <circle class="court-line" cx="${rimRight.x}" cy="${rimRight.y}" r="3"/>
+    </svg>
+  `;
+}
+
+let lastCourtOpts = null;
+
+function buildFullCourtDiagram(opts) {
+  // opts: { possessionTeam: 'home'|'away', ballSpotKey, scheme (defense scheme key, optional) }
+  lastCourtOpts = opts;
+  const wrap = document.createElement('div');
+  wrap.className = 'court-diagram-wrap fullcourt';
+
+  const possTeam = opts.possessionTeam;
+  const defTeam = possTeam === 'home' ? 'away' : 'home';
+  const scheme = opts.scheme || 'man';
+
+  const offense = offensiveSpread(possTeam, opts.ballSpotKey, opts.lastAction);
+  const defense = defensiveSpread(possTeam, opts.ballSpotKey, scheme, offense);
+
+  // Fixed jersey numbers per roster slot so each player reads as a
+  // consistent "person" across frames rather than a relabeled dot.
+  const HOME_NUMBERS = [1, 4, 23, 32, 55];
+  const AWAY_NUMBERS = [3, 7, 11, 21, 44];
+
+  function jerseyBlob(pt, team, num, opts) {
+    opts = opts || {};
+    const colorClass = team === 'home' ? 'court-marker-home' : 'court-marker-away';
+    const r = opts.r || 5.5;
+    const extraClass = opts.extraClass || '';
+    let html = `<g class="jersey-blob">`;
+    html += `<circle class="court-marker ${colorClass} ${extraClass}" cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="${r}"/>`;
+    // subtle shorts-line shading across the lower third for a jersey feel
+    html += `<path class="jersey-shade" d="M ${(pt.x - r).toFixed(1)} ${(pt.y + r * 0.35).toFixed(1)} A ${r} ${r} 0 0 0 ${(pt.x + r).toFixed(1)} ${(pt.y + r * 0.35).toFixed(1)}" fill="rgba(0,0,0,0.22)"/>`;
+    html += `<text class="jersey-number" x="${pt.x.toFixed(1)}" y="${(pt.y + 1.6).toFixed(1)}" text-anchor="middle">${num}</text>`;
+    html += `</g>`;
+    return html;
+  }
+
+  let overlay = '';
+
+  // Defense drawn first (so offense + ball renders on top)
+  defense.forEach((pt, i) => {
+    const num = (defTeam === 'home' ? HOME_NUMBERS : AWAY_NUMBERS)[i];
+    overlay += jerseyBlob(pt, defTeam, num, { r: 5, extraClass: 'on-defense' });
+  });
+
+  // Offense, with the ball-handler (index 0) emphasized + ball glyph
+  offense.forEach((pt, i) => {
+    const num = (possTeam === 'home' ? HOME_NUMBERS : AWAY_NUMBERS)[i];
+    if (i === 0) {
+      overlay += `<circle class="court-marker-glow" cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="10" fill="${possTeam === 'away' ? 'rgba(30,58,95,0.5)' : 'rgba(214,40,40,0.5)'}"/>`;
+      overlay += jerseyBlob(pt, possTeam, num, { r: 6.5, extraClass: 'has-ball' });
+      overlay += `<circle class="ball-indicator" cx="${(pt.x + (possTeam==='home'?6:-6)).toFixed(1)}" cy="${(pt.y-6).toFixed(1)}" r="2.6"/>`;
+    } else {
+      overlay += jerseyBlob(pt, possTeam, num, { r: 5.5 });
+    }
+  });
+
+  const baseSvg = fullCourtSvgMarkup();
+  const injected = baseSvg.replace('</svg>', overlay + '</svg>');
+  wrap.innerHTML = injected;
+  return wrap;
+}
+
+// ---------------------------------------------------------
+// Animated action graphic
+// Small looping SVG depicting the motion of the action that just
+// happened: a hand releasing a ball toward a hoop, a lateral pass,
+// a stationary jumper, a steal/strip, etc. Pure SVG + CSS animation,
+// no external image assets needed.
+// ---------------------------------------------------------
+function buildActionStage(actionKey, team) {
+  if (!actionKey) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'action-stage-wrap';
+
+  const ballColor = '#E8762C';
+  const ballSeam = '#3A2410';
+  const skinTone = '#C98A5E';
+  const lineColor = '#F4E3C8';
+
+  function ballGlyph(extraClass, r) {
+    r = r || 9;
+    return `
+      <g class="${extraClass || ''}">
+        <circle r="${r + 3}" fill="${ballColor}" opacity="0.22"/>
+        <circle r="${r}" fill="${ballColor}"/>
+        <path d="M ${-r} 0 L ${r} 0 M 0 ${-r} L 0 ${r}" stroke="${ballSeam}" stroke-width="1"/>
+      </g>
+    `;
+  }
+
+  function handGlyph(x, y, flip) {
+    const scaleX = flip ? -1 : 1;
+    return `
+      <g class="hand-release" transform="translate(${x},${y}) scale(${scaleX},1)">
+        <path d="M -10 30 L -6 0 Q -5 -7 0 -7 Q 5 -7 6 0 L 10 30 Z" fill="${skinTone}"/>
+      </g>
+    `;
+  }
+
+  function guideArc(d) {
+    return `<path d="${d}" fill="none" stroke="${lineColor}" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.3"/>`;
+  }
+
+  function rimGlyph(x, y, flashEnabled) {
+    return `
+      <g transform="translate(${x},${y})">
+        <line x1="-17" y1="0" x2="17" y2="0" stroke="${lineColor}" stroke-width="3"/>
+        <circle r="3.5" fill="none" stroke="${lineColor}" stroke-width="2"/>
+        ${flashEnabled ? `<rect class="rim-flash" x="-14" y="-3" width="28" height="6" fill="#FFD23F" opacity="0"/>` : ''}
+      </g>
+    `;
+  }
+
+  let svg = '';
+
+  if (actionKey === 'drive' || actionKey === 'shoot' || actionKey === 'freethrow') {
+    const path = 'M 36 72 Q 108 -16 168 28';
+    svg = `
+      <svg viewBox="0 0 200 96" xmlns="http://www.w3.org/2000/svg">
+        ${guideArc(path)}
+        ${handGlyph(36, 62, false)}
+        ${rimGlyph(168, 28, true)}
+        <g class="ball-on-path" style="offset-path: path('${path}');">
+          ${ballGlyph('', 8)}
+        </g>
+      </svg>
+    `;
+  } else if (actionKey === 'postup') {
+    const path = 'M 66 64 Q 112 8 152 32';
+    svg = `
+      <svg viewBox="0 0 200 96" xmlns="http://www.w3.org/2000/svg">
+        ${guideArc(path)}
+        ${handGlyph(66, 56, false)}
+        ${rimGlyph(152, 32, true)}
+        <g class="ball-on-path" style="offset-path: path('${path}');">
+          ${ballGlyph('', 8)}
+        </g>
+      </svg>
+    `;
+  } else if (actionKey === 'pass') {
+    const path = 'M 40 48 L 160 48';
+    svg = `
+      <svg viewBox="0 0 200 96" xmlns="http://www.w3.org/2000/svg">
+        ${guideArc(path)}
+        ${handGlyph(36, 58, false)}
+        ${handGlyph(164, 58, true)}
+        <g class="ball-on-pass-path" style="offset-path: path('${path}');">
+          ${ballGlyph('', 8)}
+        </g>
+      </svg>
+    `;
+  } else if (actionKey === 'turnover' || actionKey === 'block') {
+    const flyPath = 'M 95 50 Q 140 20 175 56';
+    svg = `
+      <svg viewBox="0 0 200 96" xmlns="http://www.w3.org/2000/svg">
+        <g class="strip-shake" transform="translate(95,50)">
+          ${ballGlyph('', 11)}
+        </g>
+        <g class="ball-fly-off" style="offset-path: path('${flyPath}');">
+          ${ballGlyph('', 6)}
+        </g>
+      </svg>
+    `;
+  } else {
+    // Generic miss: ball arcs toward the rim and glances off (drive-miss, shoot-miss, postup-miss, freethrow-miss)
+    const path = 'M 36 72 Q 106 -10 182 50';
+    svg = `
+      <svg viewBox="0 0 200 96" xmlns="http://www.w3.org/2000/svg">
+        ${guideArc(path)}
+        ${handGlyph(36, 62, false)}
+        ${rimGlyph(168, 28, false)}
+        <g class="ball-on-path" style="offset-path: path('${path}');">
+          ${ballGlyph('', 8)}
+        </g>
+      </svg>
+    `;
+  }
+
+  wrap.innerHTML = svg;
+  return wrap;
+}
+
+// ---------------------------------------------------------
+// Possession quality & shot math
+// (kept transparent/learnable, not hidden RNG soup)
+// ---------------------------------------------------------
+const SHOT_BASE_ODDS = {
+  shoot:  { fresh: 0.38, working: 0.46, rushed: 0.28 },  // a beat of ball movement opens the best look; waiting too long closes it
+  drive:  { fresh: 0.50, working: 0.58, rushed: 0.36 },  // drive to rim: even better once the defense has shifted
+  postup: { fresh: 0.46, working: 0.50, rushed: 0.40 },  // steady mid-range/inside, lowest variance across states
+  shoot3: { fresh: 0.30, working: 0.34, rushed: 0.20 },  // lower base than the 2 — but punishes a sagging defense hard
+};
+const SHOT3_SAGGING_BOOST = 0.20;  // huge bump when the defense has conceded the arc
+const SHOT3_TIGHT_PENALTY = 0.08;  // contested threes are genuinely hard
+const FIRE_ODDS_BOOST = 0.18; // additive odds boost while on fire, capped below in usage
+
+// ---------------------------------------------------------
+// Player roles — randomly assigned each game. Each role
+// drastically reshapes which actions are actually correct,
+// so there's no longer one universal best play regardless of
+// who's running point.
+// ---------------------------------------------------------
+const PLAYER_ROLES = {
+  slasher: {
+    name: 'Slasher',
+    icon: '⚡',
+    desc: 'Lives at the rim. Strong driving, weaker as a shooter.',
+    oddsMult: { drive: 1.35, shoot: 0.85, postup: 1.0, shoot3: 0.75 },
+    turnoverMult: { drive: 1.0, shoot: 1.0, postup: 1.0, shoot3: 1.0, pass: 1.0 },
+    processMult: 1.0,
+  },
+  shooter: {
+    name: 'Shooter',
+    icon: '🎯',
+    desc: 'Lives beyond the arc. Dangerous from outside, less of a rim threat.',
+    oddsMult: { drive: 0.85, shoot: 1.25, postup: 0.9, shoot3: 1.35 },
+    turnoverMult: { drive: 1.0, shoot: 1.0, postup: 1.0, shoot3: 1.0, pass: 1.0 },
+    processMult: 1.0,
+  },
+  floor_general: {
+    name: 'Floor General',
+    icon: '🧠',
+    desc: 'Runs the offense. Every pass counts double, mistakes are rare.',
+    oddsMult: { drive: 1.0, shoot: 1.0, postup: 1.0, shoot3: 1.0 },
+    turnoverMult: { drive: 0.7, shoot: 0.7, postup: 0.7, shoot3: 0.7, pass: 0.7 },
+    processMult: 2.0, // each pass builds offense process twice as fast
+  },
+  big_man: {
+    name: 'Big Man',
+    icon: '🏗️',
+    desc: 'Lives on the block. Dominant in the post, no threat from deep.',
+    oddsMult: { drive: 0.7, shoot: 0.9, postup: 1.4, shoot3: 0.5 },
+    turnoverMult: { drive: 1.0, shoot: 1.0, postup: 1.0, shoot3: 1.0, pass: 1.0 },
+    processMult: 1.0,
+    foulDrawBonus: 0.08, // extra chance to draw a foul specifically on post-ups
+  },
+};
+
+function currentRole() {
+  return PLAYER_ROLES[state.playerRole] || PLAYER_ROLES.slasher;
+}
+
+function roleAdjustedOdds(action, baseOdds) {
+  const role = currentRole();
+  const mult = role.oddsMult[action] != null ? role.oddsMult[action] : 1.0;
+  return clamp(baseOdds * mult, 0.04, 0.95);
+}
+
+function roleAdjustedTurnover(action, baseTurnover) {
+  const role = currentRole();
+  const mult = role.turnoverMult[action] != null ? role.turnoverMult[action] : 1.0;
+  return baseTurnover * mult;
+}
+
+const TURNOVER_BASE = {
+  shoot:  0.05,
+  drive:  0.14,
+  postup: 0.07,
+  pass:   0.10,
+  shoot3: 0.04, // lowest turnover risk of any shot — it's just a catch-and-shoot or pull-up from range
+};
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ---------------------------------------------------------
+// Coach's Hint: computes actual expected points per action
+// from the real odds tables (not flavor text), recommends the
+// best one for the CURRENT quality/fire state, and explains why.
+// ---------------------------------------------------------
+// ---------------------------------------------------------
+// Decision quality tracking — silently logs every shot attempt
+// against the EV-optimal choice for that exact moment, using the
+// same math the hint button uses. Powers the post-game report.
+// ---------------------------------------------------------
+function logDecision(actionTaken) {
+  if (state.drawnUpBoost) return; // drawn-up plays are scripted, not a free read — don't grade them
+  const options = computeShotOptions({
+    quality: state.quality,
+    onFireHome: state.onFire.home,
+    defensePosture: state.defensePosture
+  });
+  const best = options[0];
+  const taken = options.find(o => o.actionKey === actionTaken);
+  if (!taken) return; // 'pass' isn't a shot attempt, nothing to grade
+  const gap = best.ev - taken.ev;
+  state.decisionLog.push({
+    quarter: state.quarter,
+    action: actionTaken,
+    bestAction: best.actionKey,
+    wasOptimal: taken.actionKey === best.actionKey,
+    evTaken: taken.ev,
+    evBest: best.ev,
+    gap: gap,
+    posture: state.defensePosture,
+    quality: state.quality,
+  });
+}
+
+function computeShotOptions(stateSnapshot) {
+  const q = stateSnapshot.quality;
+  const onFire = stateSnapshot.onFireHome;
+  const posture = stateSnapshot.defensePosture;
+
+  function evFor(action) {
+    let baseOdds = SHOT_BASE_ODDS[action][q];
+    if (action === 'drive') {
+      if (posture === 'sagging') baseOdds = Math.min(0.94, baseOdds + 0.10);
+      if (posture === 'tight') baseOdds = Math.max(0.05, baseOdds - 0.06);
+    }
+    if (action === 'shoot' && posture === 'tight') baseOdds = Math.max(0.05, baseOdds - 0.08);
+    if (action === 'shoot3') {
+      if (posture === 'sagging') baseOdds = Math.min(0.85, baseOdds + SHOT3_SAGGING_BOOST);
+      if (posture === 'tight') baseOdds = Math.max(0.05, baseOdds - SHOT3_TIGHT_PENALTY);
+    }
+    baseOdds = roleAdjustedOdds(action, baseOdds);
+    const turnover = roleAdjustedTurnover(action, TURNOVER_BASE[action] * (action === 'drive' && q === 'rushed' ? 1.3 : 1));
+    let made = clamp(baseOdds, 0, 1);
+    if (onFire) made = Math.min(0.94, made + FIRE_ODDS_BOOST);
+    const points = action === 'shoot3' ? 3 : 2;
+    return { ev: made * points, made, turnover };
+  }
+
+  const drive = evFor('drive');
+  const shoot = evFor('shoot');
+  const post = evFor('postup');
+  const three = evFor('shoot3');
+
+  const options = [
+    { key: 'Drive', actionKey: 'drive', ...drive },
+    { key: 'Shoot', actionKey: 'shoot', ...shoot },
+    { key: 'Post Up', actionKey: 'postup', ...post },
+    { key: '3PT Shot', actionKey: 'shoot3', ...three },
+  ].sort((a, b) => b.ev - a.ev);
+
+  return options;
+}
+
+function computeOffenseHint() {
+  const q = state.quality;
+  const posture = state.defensePosture;
+  const options = computeShotOptions({ quality: q, onFireHome: state.onFire.home, defensePosture: posture });
+
+  const best = options[0];
+  const worst = options[options.length - 1];
+
+  const postureDesc = posture === 'sagging' ? "sagging off to protect the paint" : (posture === 'tight' ? "playing you tight" : "set and balanced");
+
+  let recommendation = best.key;
+  let reason = `${best.key} has the best expected value right now (worth about ${best.ev.toFixed(1)} points on average), since the defense is ${postureDesc}.`;
+
+  if (q !== 'working') {
+    const workingDriveEv = (SHOT_BASE_ODDS.drive.working) * 2;
+    if (workingDriveEv > best.ev + 0.15 && posture !== 'sagging') {
+      recommendation = 'Pass';
+      reason = `Right now even your best option (${best.key}, ~${Math.round(best.made*100)}%) is worse than what opens up after one good pass — Drive jumps to ${Math.round(SHOT_BASE_ODDS.drive.working*100)}% once the defense is scrambling. Move the ball first.`;
+    }
+  }
+
+  return { recommendation, reason, options, worst };
+}
+
+function computeDefenseHint() {
+  const trailingBig = (state.score.away - state.score.home) >= 6;
+  const cpuHot = state.onFire.away;
+  const onRun = state.cpuRun >= 3;
+
+  const ratings = Object.keys(DEFENSE_SCHEMES).map(key => {
+    const r = defenseAwareness(key);
+    return { key, name: DEFENSE_SCHEMES[key].name, score: r.score, label: r.label };
+  }).sort((a, b) => b.score - a.score);
+
+  const best = ratings[0];
+  let reason = `${best.name} rates best right now (${best.label}).`;
+  if (cpuHot) {
+    reason = `Away is on fire — ${best.name} is the safest call because it doesn't lean into a specific weakness a hot shooter can punish.`;
+  } else if (onRun) {
+    reason = `Away has scored several times in a row. ${best.name} directly answers that pattern.`;
+  } else if (trailingBig) {
+    reason = `You need possessions back. ${best.name} gives you the best odds of forcing one.`;
+  }
+
+  return { recommendation: best.name, reason, ratings };
+}
+
+// ---------------------------------------------------------
+// Defensive schemes (player's choice when CPU has the ball)
+// Each scheme shifts CPU's per-action odds and turnover chance.
+// Real tradeoffs: nothing is strictly best, each opens something up.
+// ---------------------------------------------------------
+const DEFENSE_SCHEMES = {
+  man: {
+    name: 'Man-to-Man',
+    sub: 'Balanced, no big weakness',
+    icon: '🛡️',
+    // multipliers applied to CPU's base odds; turnoverAdd is additive to CPU turnover chance
+    driveMod: 1.0, shootMod: 1.0, postMod: 1.0, turnoverAdd: 0,
+    desc: "Stay matched up, no overcommitment. Solid against anything, great at nothing.",
+  },
+  press: {
+    name: 'Press',
+    sub: 'Force a turnover — but risk a blow-by',
+    icon: '🤜',
+    driveMod: 1.35, shootMod: 0.85, postMod: 0.9, turnoverAdd: 0.10,
+    desc: "Pressure the ball-handler. Great chance to force a turnover, but if they beat the press, the lane is wide open.",
+  },
+  pack: {
+    name: 'Pack the Paint',
+    sub: 'Kills drives — leaves shooters open',
+    icon: '🧱',
+    driveMod: 0.45, shootMod: 1.45, postMod: 0.7, turnoverAdd: -0.02,
+    desc: "Everyone collapses near the rim. Driving in is nearly impossible — but the outside shot is wide open.",
+  },
+  double_post: {
+    name: 'Double the Post',
+    sub: 'Shuts down post-ups — opens a kick-out',
+    icon: '👥',
+    driveMod: 1.05, shootMod: 1.25, postMod: 0.35, turnoverAdd: 0.04,
+    desc: "Send a second defender at the post the moment they get the ball there. Stops the post cold, but somebody's left open.",
+  },
+};
+
+// ---------------------------------------------------------
+// Awareness ratings: live, visible guidance (not hidden math)
+// ---------------------------------------------------------
+function offenseAwareness() {
+  // Real accumulating 0-5 score: starts near the middle each possession,
+  // moves up with good process (passing, working the defense) and is
+  // capped low if you're rushed. Fire gives a real bump on top.
+  let score = state.offenseProcess;
+  if (state.quality === 'rushed') score = Math.min(score, 2);
+  if (state.onFire.home) score = Math.min(5, score + 1);
+  score = clamp(Math.round(score), 0, 5);
+
+  const labels = ['Very Low', 'Low', 'Fair', 'Good', 'Strong', 'Excellent'];
+  const postureNote = {
+    tight: "They're playing you tight — a quick drive past them is live.",
+    neutral: "Defense is set, you're set. Any read is reasonable.",
+    sagging: "They're sagging off, daring a jumper — this is exactly when a three should go up.",
+  }[state.defensePosture] || '';
+  const tips = [
+    "You're rushed and out of rhythm — get rid of it on a safe look rather than force anything.",
+    "Still rushed. A steady post-up is your safest option right now.",
+    postureNote || "Defense is set but so are you. Any read is reasonable here.",
+    "Good process so far. " + postureNote,
+    "The defense is scrambling. This is the moment to attack with confidence.",
+    "The defense is completely off balance. Whatever you do next, do it with conviction.",
+  ];
+  return { score, max: 5, label: labels[score], tip: tips[score] };
+}
+
+function defensePostureLabel() {
+  return {
+    tight: { label: 'Pressuring you', icon: '🔒', desc: "Away is playing tight, right in your space — daring you to drive past them." },
+    neutral: { label: 'Set and balanced', icon: '🛡️', desc: "Away is in a standard, balanced set — no real opening yet, no real risk yet either." },
+    sagging: { label: 'Sagging off', icon: '🌊', desc: "Away has backed off, packed toward the paint — they're conceding the outside shot to protect the rim." },
+  }[state.defensePosture] || { label: 'Set', icon: '🛡️', desc: '' };
+}
+
+function updateDefensePosture(action, outcome) {
+  // Your actions provoke a real reaction from the defense, which the
+  // NEXT possession's odds and the visible posture label both reflect.
+  if (action === 'drive' || action === 'postup') {
+    state.defensePosture = 'sagging'; // they collapse inward to stop the next drive
+  } else if (action === 'pass') {
+    if (state.defensePosture === 'tight') state.defensePosture = 'neutral';
+  } else if (action === 'shoot' || action === 'shoot3') {
+    // settling for a jumper against tight D doesn't make them pay for anything
+    if (state.defensePosture === 'sagging') state.defensePosture = 'neutral';
+  }
+}
+
+function defenseAwareness(schemeKey) {
+  // How well does this scheme fit what CPU is likely to do right now?
+  // We don't know CPU's literal next action, but we DO know team tendencies
+  // and game state, so the rating reflects an informed read, same as a coach's.
+  const scheme = DEFENSE_SCHEMES[schemeKey];
+  let score = 3; // baseline "fair" on a 0-5 scale
+
+  const trailingBig = (state.score.away - state.score.home) >= 6;
+  const cpuHot = state.onFire.away;
+
+  if (schemeKey === 'man') {
+    score = 3; // always reasonable, never the standout
+  } else if (schemeKey === 'press') {
+    score = trailingBig ? 5 : 3;
+    if (cpuHot) score = Math.max(1, score - 2); // pressing a hot shooter is risky
+  } else if (schemeKey === 'pack') {
+    score = state.cpuRun >= 3 ? 5 : 3;
+    if (cpuHot) score = Math.max(1, score - 2); // packing in does nothing vs a hot outside shooter
+  } else if (schemeKey === 'double_post') {
+    score = 3;
+  }
+  score = clamp(score, 0, 5);
+
+  const labels = ['Very Risky', 'Risky', 'Fair', 'Fair', 'Strong', 'Excellent'];
+  return { score, max: 5, label: labels[score] };
+}
+
+function awarenessBars(rating) {
+  const max = rating.max || 5;
+  let fillClass;
+  const pct = rating.score / max;
+  if (pct >= 0.8) fillClass = 'fill-high';
+  else if (pct >= 0.4) fillClass = 'fill-mid';
+  else fillClass = 'fill-low';
+  let bars = '';
+  for (let i = 0; i < max; i++) {
+    bars += `<div class="qbar ${i < rating.score ? fillClass : ''}"></div>`;
+  }
+  return bars;
+}
+
+// ---------------------------------------------------------
+// MAIN: decision card (your possession, ball in hand)
+// ---------------------------------------------------------
+function showDecisionCard() {
+  state.shotClock -= SHOT_CLOCK_PER_ACTION;
+  if (state.shotClock <= 0) {
+    resolveShotClockViolation();
+    return;
+  }
+
+  mountCard((card) => {
+    if (state.onFire.home) {
+      const banner = document.createElement('div');
+      banner.className = 'fire-banner';
+      banner.innerHTML = `<span class="flame-icon">🔥</span><span>You're on fire</span>`;
+      card.appendChild(banner);
+    }
+
+    const badgeRow = document.createElement('div');
+    badgeRow.style.display = 'flex';
+    badgeRow.style.alignItems = 'center';
+    badgeRow.style.gap = '8px';
+    badgeRow.style.flexWrap = 'wrap';
+    badgeRow.appendChild(speakerBadge('you'));
+    badgeRow.appendChild(shotClockBadge());
+    const role = currentRole();
+    const roleBadge = document.createElement('div');
+    roleBadge.className = 'speaker-badge speaker-coach';
+    roleBadge.innerHTML = `<span class="sb-avatar">${role.icon}</span><span>${role.name.toUpperCase()}</span>`;
+    badgeRow.appendChild(roleBadge);
+    card.appendChild(badgeRow);
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow home-tag';
+    eyebrow.textContent = '🏀 Your ball — Q' + state.quarter;
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'What\u2019s the play?';
+    card.appendChild(h);
+
+    card.appendChild(buildFullCourtDiagram({
+      possessionTeam: 'home',
+      ballSpotKey: state.ballSpot,
+      scheme: state.cpuDefenseScheme,
+      lastAction: state.lastAction
+    }));
+
+    // One consolidated status strip: posture + offense awareness bars,
+    // replacing what used to be four separate stacked blocks.
+    const posture = defensePostureLabel();
+    const offAware = offenseAwareness();
+    const postureRow = document.createElement('div');
+    postureRow.className = 'posture-row';
+    postureRow.innerHTML = `<span class="posture-icon">${posture.icon}</span><span><strong>${posture.label}</strong> · ${offAware.label} read</span><span class="quality-bars" style="margin-left:auto;">${awarenessBars(offAware)}</span>`;
+    card.appendChild(postureRow);
+
+    const awTip = document.createElement('div');
+    awTip.className = 'awareness-tip';
+    awTip.textContent = offAware.tip;
+    card.appendChild(awTip);
+
+    const hintBtn = document.createElement('button');
+    hintBtn.className = 'hint-btn';
+    hintBtn.innerHTML = `🧠 Coach's Advice`;
+    hintBtn.addEventListener('click', () => {
+      SFX.click();
+      const hint = computeOffenseHint();
+      const reveal = document.createElement('div');
+      reveal.className = 'hint-reveal';
+      reveal.innerHTML = `<span class="hint-rec">Coach says: ${hint.recommendation}</span>${hint.reason}`;
+      hintBtn.replaceWith(reveal);
+    });
+    card.appendChild(hintBtn);
+
+    spacer(card);
+
+    const grid = document.createElement('div');
+    grid.className = 'btn-grid';
+
+    grid.appendChild(actionButton('primary', 'Drive', 'Attack the rim', () => resolveDrive()));
+    grid.appendChild(actionButton('secondary', 'Pass', 'Swing it, find the open man', () => resolvePass()));
+    grid.appendChild(actionButton('tertiary', 'Post Up', 'Steady look inside', () => resolvePostUp()));
+    grid.appendChild(actionButton('warn', 'Shoot', 'Pull up right now', () => resolveShoot()));
+
+    const shoot3Btn = actionButton('three', '3PT Shot', posture.label === 'Sagging off' ? 'They\u2019re begging you to take it' : 'Worth the extra point', () => resolveShoot3());
+    shoot3Btn.classList.add('full');
+    grid.appendChild(shoot3Btn);
+
+    const timeoutBtn = actionButton('ghost', 'Call Timeout', timeoutSubtext(), () => offerTimeoutFromBench());
+    timeoutBtn.classList.add('full');
+    if (state.timeouts.home <= 0) {
+      timeoutBtn.disabled = true;
+      timeoutBtn.style.opacity = 0.4;
+    }
+    grid.appendChild(timeoutBtn);
+
+    card.appendChild(grid);
+
+    const playbookLink = document.createElement('button');
+    playbookLink.className = 'ghost-btn';
+    playbookLink.style.width = '100%';
+    playbookLink.style.marginTop = '10px';
+    playbookLink.style.padding = '9px';
+    playbookLink.style.borderRadius = '10px';
+    playbookLink.style.fontSize = '12px';
+    playbookLink.textContent = "📋 Coach's Playbook";
+    playbookLink.addEventListener('click', () => showStrategyGuide(() => showDecisionCard()));
+    card.appendChild(playbookLink);
+  }, 'home-turn');
+}
+
+function timeoutSubtext() {
+  if (state.timeouts.home <= 0) return 'None remaining';
+  return state.timeouts.home + ' remaining — stop the clock, reset the offense';
+}
+
+// ---------------------------------------------------------
+// Speaker badge: a small, consistent avatar + label showing who
+// is "talking" on this card, so the whole game can be scanned at
+// a glance without reading the body text first.
+// ---------------------------------------------------------
+const SPEAKERS = {
+  you:       { cls: 'speaker-you',       avatar: '🏀', label: 'YOU' },
+  coach:     { cls: 'speaker-coach',     avatar: '📋', label: 'COACH' },
+  away:      { cls: 'speaker-away',      avatar: '⚡', label: 'VOLTAGE' },
+  announcer: { cls: 'speaker-announcer', avatar: '🎙️', label: 'ANNOUNCER' },
+};
+
+function speakerBadge(speakerKey) {
+  const s = SPEAKERS[speakerKey] || SPEAKERS.coach;
+  const el = document.createElement('div');
+  el.className = 'speaker-badge ' + s.cls;
+  el.innerHTML = `<span class="sb-avatar">${s.avatar}</span><span>${s.label}</span>`;
+  return el;
+}
+
+function shotClockBadge() {
+  const seconds = Math.max(0, state.shotClock);
+  const urgency = seconds <= 7 ? 'critical' : (seconds <= 14 ? 'warning' : 'normal');
+  const el = document.createElement('div');
+  el.className = 'shot-clock-badge sc-' + urgency;
+  el.innerHTML = `⏱ <span class="sc-num">${seconds}</span>`;
+  return el;
+}
+
+function actionButton(style, label, sub, onClick) {
+  const btn = document.createElement('button');
+  btn.className = 'act ' + style;
+  btn.innerHTML = `<span>${label}</span><span class="sub">${sub}</span>`;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function possessionFlavorText() {
+  if (state.quality === 'fresh') {
+    return "You've got the ball with plenty of clock. The defense is set, but so are you.";
+  } else if (state.quality === 'working') {
+    return "Nice ball movement — the defense is scrambling to recover. This could be the moment to attack.";
+  } else {
+    return "Clock's getting short. You need to make something happen soon.";
+  }
+}
+
+// ---------------------------------------------------------
+// ACTIONS
+// ---------------------------------------------------------
+function resolveShotClockViolation() {
+  state.lastAction = 'turnover';
+  SFX.turnover();
+  nudgeMomentum(-1);
+  logPlay('Shot clock violation — 35 seconds ran out before you got a shot off.');
+  const fireChange = updateHeat('home', false);
+  showResultCard({
+    eyebrow: 'VIOLATION',
+    headline: 'SHOT CLOCK VIOLATION!',
+    mood: 'bad',
+    badge: 'turnover',
+    action: 'turnover',
+    courtTo: state.ballSpot,
+    fireCooled: fireChange === 'cooled' ? 'home' : null,
+    body: "The shot clock expired before your team got a shot up. Turnover, ball goes the other way.",
+    coach: "Coach's tip: working the ball is good, but the clock is real. If you've passed a few times without a clean look, it's time to attack before the clock makes the decision for you.",
+    onContinue: () => endYourPossession(false)
+  });
+}
+
+function resolvePass() {
+  // Passing is safe and improves possession quality (moves you toward 'fresh'-like advantage)
+  const turnover = Math.random() < roleAdjustedTurnover('pass', TURNOVER_BASE.pass);
+  const fromSpot = state.ballSpot;
+
+  if (turnover) {
+    logPlay('You tried to thread a pass inside — it got picked off!');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'TURNOVER',
+      headline: 'PASS DEFLECTED!',
+      mood: 'bad',
+      badge: 'turnover',
+      action: 'turnover',
+      courtFrom: fromSpot,
+      courtTo: 'block',
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "The defense read it and jumped the passing lane. Live-ball turnover — the other team is already pushing the other way.",
+      coach: "Coach's tip: skip passes (passing over distance, across the defense) are great, but only when the defense actually shifted out of position first. If they're set, faster reads can get picked.",
+      onContinue: () => endYourPossession(false)
+    });
+    return;
+  }
+
+  improveQuality();
+  state.offenseProcess = clamp(state.offenseProcess + (1 * currentRole().processMult), 0, 5);
+  state.lastAction = 'pass';
+  updateDefensePosture('pass');
+  // ball swings to a different perimeter spot
+  const perimeterSpots = ['topOfKey', 'wingLeft', 'wingRight'];
+  const otherSpots = perimeterSpots.filter(s => s !== fromSpot);
+  const newSpot = otherSpots[Math.floor(Math.random() * otherSpots.length)];
+  state.ballSpot = newSpot;
+
+  logPlay('Good ball movement — you swung it side to side, defense had to adjust.');
+  showResultCard({
+    eyebrow: 'BALL MOVED',
+    headline: 'NICE SWING PASS',
+    mood: 'good',
+    badge: 'make',
+    badgeIcon: '🤝',
+    action: 'pass',
+    courtFrom: fromSpot,
+    courtTo: newSpot,
+    body: "That pass forced the defense to shift. You're in better shape now than you were a second ago.",
+    coach: "Coach's tip: every extra pass makes the defense move. Moving defenders make mistakes — that's how the best looks get created.",
+    onContinue: () => { showDecisionCard(); } // possession continues, same trip
+  });
+}
+
+function resolveDrive() {
+  logDecision('drive');
+  let odds = SHOT_BASE_ODDS.drive[state.quality];
+  if (state.defensePosture === 'sagging') odds = Math.min(0.94, odds + 0.10); // they conceded the paint
+  if (state.defensePosture === 'tight') odds = Math.max(0.05, odds - 0.06);   // tight D contests the drive harder
+  if (state.onFire.home) odds = Math.min(0.94, odds + FIRE_ODDS_BOOST);
+  odds = roleAdjustedOdds('drive', odds);
+  if (state.drawnUpBoost) odds = Math.min(0.96, odds + state.drawnUpBoost);
+  const turnoverChance = roleAdjustedTurnover('drive', TURNOVER_BASE.drive * (state.quality === 'rushed' ? 1.3 : 1));
+  const roll = Math.random();
+  const fromSpot = state.ballSpot;
+  state.lastAction = 'drive';
+
+  if (roll < turnoverChance) {
+    logPlay('You drove into a crowd and lost the handle.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'TURNOVER',
+      headline: 'STRIPPED ON THE DRIVE!',
+      mood: 'bad',
+      badge: 'turnover',
+      action: 'turnover',
+      courtFrom: fromSpot,
+      courtTo: 'block',
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "Two defenders collapsed and knocked it loose. That's the risk of driving into a packed paint.",
+      coach: "Coach's tip: driving works best when there's a clear driving lane. If the defense is already collapsed near the rim, a drive is more likely to end in a turnover or a tough, contested shot.",
+      onContinue: () => endYourPossession(false)
+    });
+    return;
+  }
+
+  const foulDrawn = Math.random() < 0.16 && state.quality !== 'rushed';
+  if (foulDrawn) {
+    resolveFoulDrawn('drive to the basket', fromSpot);
+    return;
+  }
+
+  updateDefensePosture('drive');
+  state.offenseProcess = clamp(state.offenseProcess - 1, 0, 5); // a drive empties the process meter — it's a decisive read, not patient buildup
+
+  const made = roll < (turnoverChance + odds);
+  if (made) {
+    addScore('home', 2);
+    logPlay('You blew past your defender and finished at the rim. 2 points!');
+    const fireChange = updateHeat('home', true);
+    showResultCard({
+      eyebrow: 'BUCKET',
+      headline: 'FINISHES AT THE RIM!',
+      mood: 'good',
+      badge: 'make',
+      badgeIcon: '🏀',
+      action: 'drive',
+      courtFrom: fromSpot,
+      courtTo: 'rim',
+      fireEvent: (fireChange === 'caught') ? 'home' : null,
+      body: state.onFire.home
+        ? "You're on fire and it shows — right past your defender and in. Nobody can stay in front of you right now."
+        : (state.defensePosture === 'neutral' && odds > SHOT_BASE_ODDS.drive[state.quality]
+          ? "They'd sagged off expecting a pass, and you drove right through the space they left. Strong move."
+          : "Strong move — you beat your defender off the dribble and converted at the basket."),
+      coach: "Coach's tip: driving is the highest-value shot in basketball when the lane is open — shots at the rim go in far more often than long jumpers.",
+      onContinue: () => endYourPossession(true)
+    });
+  } else {
+    logPlay('You got to the rim but the shot rimmed out.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'MISS',
+      headline: 'NO GOOD AT THE RIM',
+      mood: 'bad',
+      badge: 'miss',
+      action: 'drive-miss',
+      courtFrom: fromSpot,
+      courtTo: 'rim',
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "Good drive, but the shot didn't fall. The defense boxed out and grabbed the rebound.",
+      coach: "Coach's tip: a good drive doesn't always end in a make — but it's still usually your best shot to take. Live with the results of a good decision.",
+      onContinue: () => endYourPossession(false)
+    });
+  }
+}
+
+function resolvePostUp() {
+  logDecision('postup');
+  let odds = SHOT_BASE_ODDS.postup[state.quality];
+  if (state.onFire.home) odds = Math.min(0.94, odds + FIRE_ODDS_BOOST);
+  odds = roleAdjustedOdds('postup', odds);
+  if (state.drawnUpBoost) odds = Math.min(0.96, odds + state.drawnUpBoost);
+  const turnoverChance = roleAdjustedTurnover('postup', TURNOVER_BASE.postup);
+  const roll = Math.random();
+  const fromSpot = state.ballSpot;
+  const postSpot = Math.random() < 0.5 ? 'blockLeft' : 'blockRight';
+  state.lastAction = 'postup';
+
+  if (roll < turnoverChance) {
+    logPlay('You got called for an offensive foul backing down your defender.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'TURNOVER',
+      headline: 'OFFENSIVE FOUL!',
+      mood: 'bad',
+      badge: 'turnover',
+      action: 'turnover',
+      courtFrom: fromSpot,
+      courtTo: postSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "You backed in a little too hard. The ref blew the whistle — turnover, ball goes the other way.",
+      coach: "Coach's tip: in the post, you're allowed to back your defender down, but barreling through them is a foul. Footwork and balance matter more than force.",
+      onContinue: () => endYourPossession(false)
+    });
+    return;
+  }
+
+  const postFoulChance = 0.10 + (currentRole().foulDrawBonus || 0);
+  const postFoulDrawn = Math.random() < postFoulChance && state.quality !== 'rushed';
+  if (postFoulDrawn) {
+    resolveFoulDrawn('post-up move', fromSpot);
+    return;
+  }
+
+  updateDefensePosture('postup');
+  state.offenseProcess = clamp(state.offenseProcess - 1, 0, 5);
+
+  const made = roll < (turnoverChance + odds);
+  if (made) {
+    addScore('home', 2);
+    logPlay('Smooth post move — turn, shot, bucket. 2 points!');
+    const fireChange = updateHeat('home', true);
+    showResultCard({
+      eyebrow: 'BUCKET',
+      headline: 'SOFT TOUCH INSIDE',
+      mood: 'good',
+      badge: 'make',
+      badgeIcon: '🏀',
+      action: 'postup',
+      courtFrom: fromSpot,
+      courtTo: postSpot,
+      fireEvent: fireChange === 'caught' ? 'home' : null,
+      body: state.onFire.home
+        ? "You're on fire — another smooth move inside and it's good, like you've called bank shots in your sleep."
+        : "Patient post move, good footwork, and it's good. That's a reliable shot you can go back to.",
+      coach: "Coach's tip: the post-up is one of the steadiest shots in the game — it doesn't depend much on how rushed the possession is, which makes it a great option late in the clock.",
+      onContinue: () => endYourPossession(true)
+    });
+  } else {
+    logPlay('Tough double-team forced a miss in the post.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'MISS',
+      headline: 'CONTESTED, NO GOOD',
+      mood: 'bad',
+      badge: 'miss',
+      action: 'postup-miss',
+      courtFrom: fromSpot,
+      courtTo: postSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "Two defenders collapsed on you and got a hand in your face. Shot didn't fall.",
+      coach: "Coach's tip: if you see a double-team coming in the post, kicking the ball back out is often smarter than forcing a shot through two defenders.",
+      onContinue: () => endYourPossession(false)
+    });
+  }
+}
+
+function resolveShoot() {
+  logDecision('shoot');
+  let odds = SHOT_BASE_ODDS.shoot[state.quality];
+  if (state.defensePosture === 'tight') odds = Math.max(0.05, odds - 0.08); // contested harder
+  if (state.onFire.home) odds = Math.min(0.94, odds + FIRE_ODDS_BOOST);
+  odds = roleAdjustedOdds('shoot', odds);
+  if (state.drawnUpBoost) odds = Math.min(0.96, odds + state.drawnUpBoost);
+  const turnoverChance = roleAdjustedTurnover('shoot', TURNOVER_BASE.shoot);
+  const roll = Math.random();
+  const fromSpot = state.ballSpot;
+  state.lastAction = 'shoot';
+
+  if (roll < turnoverChance) {
+    logPlay('Your quick shot got blocked clean.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'BLOCKED',
+      headline: 'SENT BACK!',
+      mood: 'bad',
+      badge: 'turnover',
+      action: 'block',
+      courtTo: fromSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "The defense wasn't out of position at all, and they made you pay for the quick trigger.",
+      coach: "Coach's tip: pulling up right away only works if the defense hasn't set up yet. Against a set defense, a quick shot is the lowest-percentage option on this list.",
+      onContinue: () => endYourPossession(false)
+    });
+    return;
+  }
+
+  updateDefensePosture('shoot');
+  state.offenseProcess = clamp(state.offenseProcess - 1, 0, 5);
+
+  const made = roll < (turnoverChance + odds);
+  if (made) {
+    addScore('home', 2);
+    logPlay('Quick trigger, good look, and it splashes! 2 points!');
+    const fireChange = updateHeat('home', true);
+    showResultCard({
+      eyebrow: 'BUCKET',
+      headline: 'KNOCKS IT DOWN!',
+      mood: 'good',
+      badge: 'make',
+      badgeIcon: '🏀',
+      action: 'shoot',
+      courtTo: fromSpot,
+      fireEvent: fireChange === 'caught' ? 'home' : null,
+      body: state.onFire.home
+        ? "You're on fire — that one barely even touched the rim. Keep shooting."
+        : (state.quality === 'fresh'
+          ? "You caught the defense napping and got a great look early. Nothing wrong with taking a good shot the moment you see it."
+          : "Bold, quick shot — and it went in. Sometimes confidence is exactly the right read."),
+      coach: state.quality === 'fresh'
+        ? "Coach's tip: a quick, open shot early in a possession is still a good shot if the defense is caught off guard. \"Early\" isn't the same as \"bad\" — it's about whether you're open."
+        : "Coach's tip: quick shots against a set defense go in less often on average — but every possession is its own roll. Over a whole game, working the ball usually pays off more.",
+      onContinue: () => endYourPossession(true)
+    });
+  } else {
+    logPlay('Quick shot, off the mark. Defense corrals the rebound.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'MISS',
+      headline: "DIDN'T FALL",
+      mood: 'bad',
+      badge: 'miss',
+      action: 'shoot-miss',
+      courtTo: fromSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "Contested look, and it rimmed out. The defense was right there.",
+      coach: "Coach's tip: against a set, ready defense, a quick shot is usually lower-percentage than driving or working the ball first. It's not the wrong choice forever — just less likely to pay off early in a possession.",
+      onContinue: () => endYourPossession(false)
+    });
+  }
+}
+
+function resolveShoot3() {
+  logDecision('shoot3');
+  let odds = SHOT_BASE_ODDS.shoot3[state.quality];
+  if (state.defensePosture === 'sagging') odds = Math.min(0.85, odds + SHOT3_SAGGING_BOOST);
+  if (state.defensePosture === 'tight') odds = Math.max(0.05, odds - SHOT3_TIGHT_PENALTY);
+  if (state.onFire.home) odds = Math.min(0.85, odds + FIRE_ODDS_BOOST);
+  odds = roleAdjustedOdds('shoot3', odds);
+  if (state.drawnUpBoost) odds = Math.min(0.90, odds + state.drawnUpBoost);
+  const turnoverChance = roleAdjustedTurnover('shoot3', TURNOVER_BASE.shoot3);
+  const roll = Math.random();
+  const fromSpot = state.ballSpot;
+  state.lastAction = 'shoot3';
+
+  if (roll < turnoverChance) {
+    logPlay('Your three got swatted clean out of the air.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'BLOCKED',
+      headline: 'SENT BACK FROM DEEP!',
+      mood: 'bad',
+      badge: 'turnover',
+      action: 'block',
+      courtTo: fromSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: "They closed out faster than you read it. Even from outside, a closeout that quick can get a hand on it.",
+      coach: "Coach's tip: a three only stays low-risk if the closeout is actually late. If the defense is tight, the block risk goes up like any contested shot.",
+      onContinue: () => endYourPossession(false)
+    });
+    return;
+  }
+
+  const wasSagging = state.defensePosture === 'sagging';
+  updateDefensePosture('shoot3');
+  state.offenseProcess = clamp(state.offenseProcess - 1, 0, 5);
+
+  const made = roll < (turnoverChance + odds);
+  if (made) {
+    addScore('home', 3);
+    logPlay('They left you alone from deep and paid for it — three points!');
+    const fireChange = updateHeat('home', true);
+    showResultCard({
+      eyebrow: 'BUCKET',
+      headline: 'THREE FROM THE WING!',
+      mood: 'good',
+      badge: 'make',
+      badgeIcon: '🏀',
+      action: 'shoot3',
+      courtTo: fromSpot,
+      fireEvent: fireChange === 'caught' ? 'home' : null,
+      body: state.onFire.home
+        ? "You're on fire from deep right now — nothing but net."
+        : (wasSagging
+          ? "They sagged off to protect the paint and left you wide open — that's exactly the shot you take every time."
+          : "Confident look from outside, and it's good."),
+      coach: wasSagging
+        ? "Coach's tip: this is the direct counter to a defense that packs in — if they're conceding the arc, make them pay from the arc."
+        : "Coach's tip: the three is worth the extra point, but it's a lower-percentage shot than the rim — best taken when the defense has actually given you the space for it.",
+      onContinue: () => endYourPossession(true)
+    });
+  } else {
+    logPlay('Three off the back iron, no good.');
+    const fireChange = updateHeat('home', false);
+    showResultCard({
+      eyebrow: 'MISS',
+      headline: "RIMS OUT FROM DEEP",
+      mood: 'bad',
+      badge: 'miss',
+      action: 'shoot3-miss',
+      courtTo: fromSpot,
+      fireCooled: fireChange === 'cooled' ? 'home' : null,
+      body: wasSagging
+        ? "You had the space, just didn't have the touch this time. Still the right shot to take."
+        : "Contested from outside, and it didn't fall. Tough shot to make when they're up in your space.",
+      coach: "Coach's tip: a missed three you were right to take is still a good process — the shot selection was correct even when the result wasn't.",
+      onContinue: () => endYourPossession(false)
+    });
+  }
+}
+
+function resolveFoulDrawn(actionDesc, fromSpot) {
+  const onBonus = state.fouls.away >= 5;
+  logPlay(`Drew a foul on the ${actionDesc}. ${onBonus ? 'Bonus free throws!' : 'Two shots from the line.'}`);
+  state.fouls.away++;
+  state.ballSpot = 'ftLine';
+
+  showResultCard({
+    eyebrow: 'FOUL DRAWN',
+    headline: 'AND THE FOUL!',
+    mood: 'good',
+    badge: 'foul',
+    badgeIcon: '🦵',
+    courtFrom: fromSpot,
+    courtTo: 'rim',
+    body: `You drew contact on the ${actionDesc}. Free throws coming up.`,
+    coach: "Coach's tip: attacking the basket doesn't just create shots — it creates fouls. Getting to the free throw line is one of the most efficient ways to score, and it puts the other team's bench under pressure as fouls add up.",
+    onContinue: () => goToFreeThrows()
+  });
+}
+
+function goToFreeThrows() {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow home-tag';
+    eyebrow.textContent = 'FREE THROWS';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Step to the line';
+    card.appendChild(h);
+
+    card.appendChild(buildFullCourtDiagram({ possessionTeam: 'home', ballSpotKey: 'ftLine', scheme: state.cpuDefenseScheme }));
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = "Two shots. Free throws are about routine, not power — the best foul shooters do the same thing every single time.";
+    card.appendChild(p);
+
+    spacer(card);
+    continueButton(card, 'Shoot Free Throws', () => simulateFreeThrows());
+  }, 'home-turn');
+}
+
+function simulateFreeThrows() {
+  const FT_PCT = 0.72; // youth-realistic, steady
+  let made = 0;
+  for (let i = 0; i < 2; i++) {
+    if (Math.random() < FT_PCT) made++;
+  }
+  addScore('home', made);
+
+  const resultText = made === 2 ? "Both shots are good! 2 points from the line."
+                    : made === 1 ? "1 of 2 falls. 1 point from the line."
+                    : "Both shots miss. Tough break at the line.";
+
+  logPlay(`Free throws: made ${made} of 2.`);
+  const fireChange = updateHeat('home', made > 0);
+
+  showResultCard({
+    eyebrow: 'FREE THROW RESULT',
+    headline: made === 2 ? 'PERFECT AT THE LINE' : (made === 1 ? 'SPLIT THE PAIR' : 'BOTH MISS'),
+    mood: made > 0 ? 'good' : 'bad',
+    badge: made > 0 ? 'make' : 'miss',
+    action: made > 0 ? 'freethrow' : 'freethrow-miss',
+    courtTo: 'ftLine',
+    fireEvent: fireChange === 'caught' ? 'home' : null,
+    fireCooled: fireChange === 'cooled' ? 'home' : null,
+    body: resultText,
+    onContinue: () => endYourPossession(made > 0)
+  });
+}
+
+// ---------------------------------------------------------
+// Possession quality progression
+// ---------------------------------------------------------
+function improveQuality() {
+  // Each pass works the shot clock. The first pass or two opens things up
+  // (fresh -> working is an upgrade). Stalling too long tips into rushed.
+  state.passesThisPossession = (state.passesThisPossession || 0) + 1;
+
+  if (state.passesThisPossession <= 2) {
+    if (state.quality === 'fresh') state.quality = 'working';
+  } else {
+    state.quality = 'rushed';
+  }
+}
+
+// ---------------------------------------------------------
+// Scoring / logging helpers
+// ---------------------------------------------------------
+function addScore(team, pts) {
+  state.score[team] += pts;
+  if (team === 'away') {
+    state.cpuRun += pts;
+  } else {
+    state.cpuRun = 0;
+  }
+  if (pts > 0) {
+    state.pendingCheer = true;
+    if (team === 'home') {
+      if (pts >= 3) SFX.make3(); else SFX.make();
+      nudgeMomentum(pts >= 3 ? 2 : 1);
+    } else {
+      SFX.opponentScore();
+      nudgeMomentum(pts >= 3 ? -2 : -1);
+    }
+  }
+}
+
+function nudgeMomentum(amount) {
+  state.momentum = clamp(state.momentum + amount, -3, 3);
+  // momentum naturally pulls back toward even over time so a single
+  // hot stretch doesn't permanently lock the indicator one direction
+  if (amount > 0 && state.momentum > 3) state.momentum = 3;
+  if (amount < 0 && state.momentum < -3) state.momentum = -3;
+}
+
+function triggerCrowdCheer() {
+  const strip = document.querySelector('.crowd-strip');
+  if (!strip) return;
+  strip.classList.add('cheering');
+  setTimeout(() => strip.classList.remove('cheering'), 1400);
+}
+
+function logPlay(text) {
+  state.log.push({ quarter: state.quarter, text });
+}
+
+// ---------------------------------------------------------
+// Result card (shared shell for all action outcomes)
+// ---------------------------------------------------------
+function showResultCard(opts) {
+  const turnClass = opts.team === 'away' ? 'cpu-turn' : 'home-turn';
+  const eyebrowTag = opts.team === 'away' ? 'away-tag' : 'home-tag';
+
+  // Sound dispatch: badge tells us what happened, team tells us whose
+  // perspective it should sound like. A turnover or miss FROM AWAY is a
+  // good outcome for you on defense, so it gets the positive cue.
+  const isAwayResult = opts.team === 'away';
+  if (opts.badge === 'miss') {
+    if (isAwayResult) SFX.click(); else SFX.miss();
+  } else if (opts.badge === 'turnover') {
+    if (isAwayResult) SFX.click(); else SFX.turnover();
+    // A turnover is a momentum swing too: your turnover helps them,
+    // a turnover you force on defense helps you.
+    nudgeMomentum(isAwayResult ? 1 : -1);
+  } else if (opts.badge === 'foul') {
+    SFX.whistleFoul();
+  }
+  if (opts.fireEvent) SFX.catchFire();
+
+  mountCard((card) => {
+    card.appendChild(speakerBadge('announcer'));
+
+    if (opts.fireEvent) {
+      const banner = document.createElement('div');
+      banner.className = 'fire-banner' + (opts.fireEvent === 'away' ? ' away-fire' : '');
+      const who = opts.fireEvent === 'away' ? 'AWAY IS ON FIRE' : "YOU'RE ON FIRE";
+      banner.innerHTML = `<span class="flame-icon">🔥</span><span>${who}</span>`;
+      card.appendChild(banner);
+    } else if (opts.fireCooled) {
+      const banner = document.createElement('div');
+      banner.className = 'fire-banner' + (opts.fireCooled === 'away' ? ' away-fire' : '');
+      banner.style.background = 'linear-gradient(90deg, #5A5450 0%, #7A736C 100%)';
+      banner.style.boxShadow = 'none';
+      const who = opts.fireCooled === 'away' ? 'AWAY HAS COOLED OFF' : 'THE HEAT IS GONE';
+      banner.innerHTML = `<span class="flame-icon" style="animation:none;">💨</span><span>${who}</span>`;
+      card.appendChild(banner);
+    }
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow ' + eyebrowTag;
+    eyebrow.textContent = opts.eyebrow;
+    card.appendChild(eyebrow);
+
+    const stage = buildActionStage(opts.action, opts.team);
+    if (stage) card.appendChild(stage);
+
+    if (opts.badge) {
+      const badge = document.createElement('div');
+      badge.className = 'result-badge ' + opts.badge;
+      badge.textContent = opts.badgeIcon || (opts.badge === 'make' ? '✅' : opts.badge === 'miss' ? '❌' : opts.badge === 'foul' ? '🦵' : '⚠️');
+      badge.style.display = 'none'; // animation stage replaces this visually; kept for screen readers/fallback
+      card.appendChild(badge);
+    }
+
+    const h = document.createElement('h1');
+    h.className = 'headline ' + (opts.mood === 'good' ? 'good' : 'bad');
+    h.textContent = opts.headline;
+    card.appendChild(h);
+
+    if (opts.courtFrom || opts.courtTo) {
+      const possTeam = opts.team || 'home';
+      const scheme = possTeam === 'home' ? state.cpuDefenseScheme : (opts.defenseScheme || state.homeDefenseScheme);
+      const actionBase = (opts.action || '').replace('-miss', '');
+      card.appendChild(buildFullCourtDiagram({
+        possessionTeam: possTeam,
+        ballSpotKey: opts.courtTo,
+        scheme: scheme,
+        lastAction: actionBase
+      }));
+    }
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = opts.body;
+    card.appendChild(p);
+
+    if (opts.coach) {
+      const coachEyebrow = document.createElement('div');
+      coachEyebrow.className = 'eyebrow coach-tag';
+      coachEyebrow.style.marginTop = '10px';
+      coachEyebrow.textContent = 'FROM THE BENCH';
+      card.appendChild(coachEyebrow);
+
+      const coach = document.createElement('div');
+      coach.className = 'coach-box';
+      coach.textContent = opts.coach;
+      card.appendChild(coach);
+    }
+
+    spacer(card);
+    continueButton(card, 'Continue', opts.onContinue);
+  }, turnClass);
+}
+
+// ---------------------------------------------------------
+// End of your possession -> decide what's next
+// ---------------------------------------------------------
+function randomPerimeterSpot() {
+  const spots = ['topOfKey', 'wingLeft', 'wingRight'];
+  return spots[Math.floor(Math.random() * spots.length)];
+}
+
+function updateHeat(team, scored) {
+  if (scored) {
+    state.heat[team]++;
+    if (state.heat[team] >= HEAT_TO_CATCH_FIRE) {
+      const justCaughtFire = !state.onFire[team];
+      state.onFire[team] = true;
+      return justCaughtFire ? 'caught' : 'extended';
+    }
+  } else {
+    const wasOnFire = state.onFire[team];
+    state.heat[team] = 0;
+    state.onFire[team] = false;
+    return wasOnFire ? 'cooled' : 'none';
+  }
+  return 'building';
+}
+
+function endYourPossession(scored) {
+  state.quality = 'fresh'; // every new possession starts with a fresh shot clock
+  state.passesThisPossession = 0;
+  state.ballSpot = randomPerimeterSpot();
+  state.offenseProcess = 2; // reset to a neutral baseline for the next trip
+  state.defensePosture = 'neutral'; // defense resets between possessions too
+  state.shotClock = SHOT_CLOCK_START;
+
+  state.possessionsLeftThisQuarter--;
+
+  if (state.possessionsLeftThisQuarter <= 0) {
+    showQuarterBreak();
+    return;
+  }
+
+  // Offer a timeout if the CPU is on a real run
+  if (state.cpuRun >= 5 && state.timeouts.home > 0) {
+    offerTimeoutOnRun();
+    return;
+  }
+
+  showCpuPossession();
+}
+
+// ---------------------------------------------------------
+// CPU possession (auto-resolves, brief result)
+// ---------------------------------------------------------
+function showCpuPossession() {
+  // Late-game intentional foul option for the user, on defense
+  const isLateAndTrailing = state.quarter === TOTAL_QUARTERS
+    && state.possessionsLeftThisQuarter <= 2
+    && state.score.home < state.score.away
+    && (state.score.away - state.score.home) <= 8;
+
+  if (isLateAndTrailing) {
+    offerIntentionalFoul();
+    return;
+  }
+
+  showDefenseCard();
+}
+
+function showDefenseCard() {
+  mountCard((card) => {
+    card.appendChild(speakerBadge('you'));
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow away-tag';
+    eyebrow.textContent = '🏀 Away ball — Q' + state.quarter + ' · Your defense';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Set the defense';
+    card.appendChild(h);
+
+    card.appendChild(buildFullCourtDiagram({
+      possessionTeam: 'away',
+      ballSpotKey: state.ballSpot,
+      scheme: state.homeDefenseScheme,
+      lastAction: state.lastAction
+    }));
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = "Away is bringing the ball up. Pick a defensive scheme before they make their move.";
+    card.appendChild(p);
+
+    const situational = [];
+    if (state.onFire.away) situational.push("Away is on fire right now — they'll make you pay for packing in or pressing a shooter who's feeling it.");
+    if (state.cpuRun >= 3 && !state.onFire.away) situational.push("Away has scored several times in a row — if they've been getting to the rim, packing the paint can cut that off.");
+    if (situational.length > 0) {
+      const sit = document.createElement('div');
+      sit.className = 'awareness-tip';
+      sit.textContent = situational.join(' ');
+      card.appendChild(sit);
+    }
+
+    const hintBtn = document.createElement('button');
+    hintBtn.className = 'hint-btn';
+    hintBtn.innerHTML = `🧠 Coach's Advice`;
+    hintBtn.addEventListener('click', () => {
+      SFX.click();
+      const hint = computeDefenseHint();
+      const reveal = document.createElement('div');
+      reveal.className = 'hint-reveal';
+      reveal.innerHTML = `<span class="hint-rec">Coach says: ${hint.recommendation}</span>${hint.reason}`;
+      hintBtn.replaceWith(reveal);
+    });
+    card.appendChild(hintBtn);
+
+    spacer(card);
+
+    const grid = document.createElement('div');
+    grid.className = 'btn-grid';
+
+    const schemeButtonStyles = { man: 'tertiary', press: 'primary', pack: 'secondary', double_post: 'warn' };
+    Object.keys(DEFENSE_SCHEMES).forEach(key => {
+      const s = DEFENSE_SCHEMES[key];
+      const rating = defenseAwareness(key);
+      const btn = actionButton(schemeButtonStyles[key], s.icon + ' ' + s.name, s.sub + ' · ' + rating.label, () => chooseDefense(key));
+      grid.appendChild(btn);
+    });
+
+    card.appendChild(grid);
+
+    const playbookLink = document.createElement('button');
+    playbookLink.className = 'ghost-btn';
+    playbookLink.style.width = '100%';
+    playbookLink.style.marginTop = '10px';
+    playbookLink.style.padding = '9px';
+    playbookLink.style.borderRadius = '10px';
+    playbookLink.style.fontSize = '12px';
+    playbookLink.textContent = "📋 Coach's Playbook";
+    playbookLink.addEventListener('click', () => showStrategyGuide(() => showDefenseCard()));
+    card.appendChild(playbookLink);
+  }, 'cpu-turn');
+}
+
+function chooseDefense(schemeKey) {
+  state.homeDefenseScheme = schemeKey;
+  logPlay(`You set up in ${DEFENSE_SCHEMES[schemeKey].name} defense.`);
+  resolveCpuPossession(schemeKey);
+}
+
+function offerIntentionalFoul() {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow away-tag';
+    eyebrow.textContent = "🏀 AWAY ball — Q" + state.quarter + ' · Defense';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Foul on purpose?';
+    card.appendChild(h);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = `You're down ${state.score.away - state.score.home} with the clock running out. Fouling on purpose stops the clock and sends them to the line — but it only scores them 1 or 2 points instead of letting them run more time off the clock, or score a quick basket of their own.`;
+    card.appendChild(p);
+
+    const coachEyebrow = document.createElement('div');
+    coachEyebrow.className = 'eyebrow coach-tag';
+    coachEyebrow.style.marginTop = '8px';
+    coachEyebrow.textContent = 'FROM THE BENCH';
+    card.appendChild(coachEyebrow);
+
+    const coach = document.createElement('div');
+    coach.className = 'coach-box';
+    coach.textContent = "Coach's tip: intentional fouling only makes sense when you're behind late and the clock is the real opponent. It trades the other team's possession for two free throws and stops the clock — useful when you need the ball back fast, but it can backfire if they're a great free-throw shooting team.";
+    card.appendChild(coach);
+
+    spacer(card);
+
+    const col = document.createElement('div');
+    col.className = 'btn-col';
+    col.appendChild(actionButton('warn', 'Foul Intentionally', 'Stop the clock, send them to the line', () => {
+      logPlay('You sent the foul-team strategy in — fouled on purpose to stop the clock.');
+      state.fouls.home++;
+      simulateOpponentFreeThrows();
+    }));
+    col.appendChild(actionButton('ghost', 'Play It Straight', 'Let the clock run, choose your defense', () => {
+      showDefenseCard();
+    }));
+    card.appendChild(col);
+  }, 'cpu-turn');
+}
+
+function simulateOpponentFreeThrows() {
+  const FT_PCT = 0.68;
+  let made = 0;
+  for (let i = 0; i < 2; i++) {
+    if (Math.random() < FT_PCT) made++;
+  }
+  addScore('away', made);
+  logPlay(`Away free throws: made ${made} of 2.`);
+  const fireChange = updateHeat('away', made > 0);
+
+  showResultCard({
+    team: 'away',
+    eyebrow: 'OPPONENT FREE THROWS',
+    headline: made === 2 ? 'BOTH GOOD' : (made === 1 ? 'ONE FALLS' : 'BOTH MISS'),
+    mood: made === 0 ? 'good' : 'bad',
+    badge: made > 0 ? 'make' : 'miss',
+    action: made > 0 ? 'freethrow' : 'freethrow-miss',
+    courtTo: 'ftLine',
+    fireEvent: fireChange === 'caught' ? 'away' : null,
+    fireCooled: fireChange === 'cooled' ? 'away' : null,
+    body: `They made ${made} of 2 from the line. Clock stopped — you get the ball back with time still on it.`,
+    onContinue: () => { state.ballSpot = randomPerimeterSpot(); showDecisionCard(); }
+  });
+}
+
+function randomizeRole() {
+  const roleKeys = Object.keys(PLAYER_ROLES);
+  state.playerRole = roleKeys[Math.floor(Math.random() * roleKeys.length)];
+}
+
+function resetGameState() {
+  state.quarter = 1;
+  state.possessionsLeftThisQuarter = POSSESSIONS_PER_QUARTER;
+  state.score = { home: 0, away: 0 };
+  state.timeouts = { home: STARTING_TIMEOUTS };
+  state.fouls = { home: 0, away: 0 };
+  state.quality = 'fresh';
+  state.passesThisPossession = 0;
+  state.ballSpot = 'topOfKey';
+  state.cpuRun = 0;
+  state.heat = { home: 0, away: 0 };
+  state.onFire = { home: false, away: false };
+  state.log = [];
+  state.lastFoulOfferedQuarter = -1;
+  state.cpuDefenseScheme = 'man';
+  state.homeDefenseScheme = 'man';
+  state.pendingCheer = false;
+  state.lastAction = null;
+  state.defensePosture = 'neutral';
+  state.offenseProcess = 2;
+  state.decisionLog = [];
+  state.cpuActionTally = { drive: {att:0,made:0}, shoot: {att:0,made:0}, postup: {att:0,made:0} };
+  state.momentum = 0;
+  state.shotClock = SHOT_CLOCK_START;
+  randomizeRole();
+}
+
+function resolveCpuPossession(schemeKey) {
+  schemeKey = schemeKey || 'man';
+  const scheme = DEFENSE_SCHEMES[schemeKey];
+
+  // CPU's action tendencies shift with the defense they're facing:
+  // packed-in defense bait more jumpers, presses bait more drives
+  // (either a blow-by or a turnover), doubled post makes post-ups rare.
+  let driveWeight = 0.40, shootWeight = 0.25, postWeight = 0.20, turnoverWeight = 0.15;
+  if (schemeKey === 'press') { driveWeight = 0.50; turnoverWeight = 0.24; shootWeight = 0.16; postWeight = 0.10; }
+  else if (schemeKey === 'pack') { shootWeight = 0.46; driveWeight = 0.16; postWeight = 0.18; turnoverWeight = 0.20; }
+  else if (schemeKey === 'double_post') { postWeight = 0.06; driveWeight = 0.46; shootWeight = 0.32; turnoverWeight = 0.16; }
+
+  // Arc-level adaptation: Voltage leans further into whatever scored on
+  // you in previous games, and away from whatever you shut down — within
+  // bounds, so they stay recognizable as a team rather than a spam-bot.
+  driveWeight *= arcState.cpuActionWeightMods.drive;
+  shootWeight *= arcState.cpuActionWeightMods.shoot;
+  postWeight *= arcState.cpuActionWeightMods.postup;
+
+  const total = driveWeight + shootWeight + postWeight + turnoverWeight;
+  const roll = Math.random() * total;
+  let action;
+  if (roll < driveWeight) action = 'drive';
+  else if (roll < driveWeight + shootWeight) action = 'shoot';
+  else if (roll < driveWeight + shootWeight + postWeight) action = 'postup';
+  else action = 'turnover';
+
+  const fromSpot = randomPerimeterSpot();
+  let toSpot = fromSpot;
+  if (action === 'drive') toSpot = 'rim';
+  else if (action === 'postup') toSpot = Math.random() < 0.5 ? 'blockLeft' : 'blockRight';
+  // 'shoot' and 'turnover' stay at fromSpot (pull-up / picked off where they're standing)
+
+  let resultText, scored = false, pts = 0;
+
+  // Apply scheme modifiers + an extra turnover chance from the scheme itself
+  const schemeTurnoverRoll = action !== 'turnover' && Math.random() < Math.max(0, scheme.turnoverAdd);
+  if (action === 'turnover' || schemeTurnoverRoll) {
+    action = 'turnover';
+    const turnoverFlavor = {
+      press: "Your press forces a bad pass under pressure.",
+      man: "Away turns it over — your defense forced a bad pass.",
+      pack: "Away turns it over trying to force a pass into the packed paint.",
+      double_post: "Away turns it over trying to thread a pass past the double-team.",
+    };
+    resultText = turnoverFlavor[schemeKey] || turnoverFlavor.man;
+    logPlay('Away commits a turnover against your ' + scheme.name + ' defense.');
+  } else {
+    const oddsMap = { drive: 0.52, shoot: 0.38, postup: 0.46 };
+    const modMap = { drive: scheme.driveMod, shoot: scheme.shootMod, postup: scheme.postMod };
+    let chance = clamp(oddsMap[action] * modMap[action], 0.08, 0.94);
+    if (state.onFire.away) chance = Math.min(0.94, chance + FIRE_ODDS_BOOST);
+    const made = Math.random() < chance;
+
+    if (state.cpuActionTally[action]) {
+      state.cpuActionTally[action].att++;
+      if (made) state.cpuActionTally[action].made++;
+    }
+
+    const schemeContext = {
+      press: { drive: "blows right past your press defender", shoot: "barely gets a shot up with your press closing", postup: "backs it down while your press scrambles to help" },
+      pack:  { drive: "tries to drive but finds the lane completely packed", shoot: "finds nothing but space outside your packed-in defense", postup: "gets swallowed up inside your pack" },
+      double_post: { drive: "drives, since your bigs are busy doubling the post", shoot: "pulls up with your defense honed in on the post", postup: "fights through your double-team in the post" },
+      man: { drive: "drives the lane", shoot: "pulls up", postup: "backs it down" },
+    };
+    const ctx = schemeContext[schemeKey] || schemeContext.man;
+
+    if (made) {
+      pts = 2;
+      scored = true;
+      const verbs = {
+        drive: ctx.drive + " and finishes",
+        shoot: ctx.shoot + " and knocks it down",
+        postup: ctx.postup + " and scores"
+      };
+      resultText = state.onFire.away
+        ? `Away is on fire and ${verbs[action]}. 2 points!`
+        : `Away ${verbs[action]}. 2 points.`;
+      addScore('away', 2);
+    } else {
+      const verbs = {
+        drive: ctx.drive + " but the shot rims out",
+        shoot: ctx.shoot + " — no good",
+        postup: ctx.postup + " but misses"
+      };
+      resultText = `Away ${verbs[action]}. Your defense gets the rebound.`;
+    }
+    logPlay(resultText);
+  }
+
+  const fireChange = updateHeat('away', scored && action !== 'turnover');
+
+  showResultCard({
+    team: 'away',
+    eyebrow: 'AWAY POSSESSION · ' + scheme.name.toUpperCase() + ' D',
+    headline: scored ? 'AWAY SCORES' : (action === 'turnover' ? 'TURNOVER FORCED' : 'AWAY MISSES'),
+    mood: scored ? 'bad' : 'good',
+    badge: scored ? 'make' : (action === 'turnover' ? 'turnover' : 'miss'),
+    badgeIcon: scored ? '🏀' : (action === 'turnover' ? '🙌' : undefined),
+    action: action === 'turnover' ? 'turnover' : (scored ? action : action + '-miss'),
+    fireEvent: fireChange === 'caught' ? 'away' : null,
+    fireCooled: fireChange === 'cooled' ? 'away' : null,
+    defenseScheme: schemeKey,
+    courtFrom: fromSpot === toSpot ? null : fromSpot,
+    courtTo: toSpot,
+    body: resultText,
+    coach: scored && (schemeKey === 'pack' && action === 'shoot')
+      ? "Coach's tip: that's the tradeoff with packing the paint — you'll wall off the rim, but a team that can really shoot will make you pay from outside."
+      : (scored && (schemeKey === 'press' && action === 'drive')
+        ? "Coach's tip: that's the risk with pressing — if they beat it off the dribble, your help defense isn't in position yet."
+        : (scored && (schemeKey === 'double_post' && action !== 'postup')
+          ? "Coach's tip: sending the double at the post means somebody else is open. That's exactly who just scored."
+          : null)),
+    onContinue: () => showDecisionCard()
+  });
+}
+
+// ---------------------------------------------------------
+// Timeouts
+// ---------------------------------------------------------
+function offerTimeoutOnRun() {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = '⏱️ MOMENTUM CHECK';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline bad';
+    h.textContent = "They're on a run!";
+    card.appendChild(h);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = `Away has scored ${state.cpuRun} straight points. A timeout here stops their momentum and lets you reset the offense — but it costs you one of your ${state.timeouts.home} remaining.`;
+    card.appendChild(p);
+
+    const coach = document.createElement('div');
+    coach.className = 'coach-box';
+    coach.textContent = "Coach's tip: calling timeout during an opponent's run is one of the best uses of a timeout. It stops the bleeding, lets you draw up a play, and gives your team a breather. Save at least one for the final minute, though — you'll want it to set up a last shot.";
+    card.appendChild(coach);
+
+    spacer(card);
+
+    const col = document.createElement('div');
+    col.className = 'btn-col';
+    col.appendChild(actionButton('warn', 'Call Timeout', 'Stop the run, reset the offense', () => {
+      state.timeouts.home--;
+      SFX.timeout();
+      state.cpuRun = 0;
+      logPlay('You called timeout to stop the run.');
+      showTimeoutCard(() => showCpuPossession(), "Coach settles the team down and talks through how to slow the other team's momentum. Take a breath — the run stops here.");
+    }));
+    col.appendChild(actionButton('ghost', 'Keep Playing', 'Save the timeout', () => {
+      showCpuPossession();
+    }));
+    card.appendChild(col);
+  }, 'home-turn');
+}
+
+// ---------------------------------------------------------
+// Drawn-up plays — available after calling a timeout. Each one
+// targets a specific action and gets a real odds boost, since
+// the whole team is on the same page coming out of the huddle.
+// ---------------------------------------------------------
+const DRAWN_UP_PLAYS = {
+  iso_slasher: {
+    name: 'Iso, Attack the Rim',
+    icon: '⚡',
+    desc: 'Clear out, let your driver go to work.',
+    action: 'drive',
+    oddsBoost: 0.14,
+  },
+  pick_and_pop: {
+    name: 'Pick and Pop 3',
+    icon: '🎯',
+    desc: 'Screen, relocate, catch-and-shoot from deep.',
+    action: 'shoot3',
+    oddsBoost: 0.13,
+  },
+  post_feed: {
+    name: 'Post Feed',
+    icon: '🏗️',
+    desc: 'Work it inside to the block.',
+    action: 'postup',
+    oddsBoost: 0.14,
+  },
+  quick_hitter: {
+    name: 'Quick Hitter',
+    icon: '🧠',
+    desc: 'A scripted pass-then-shot, run on time.',
+    action: 'shoot',
+    oddsBoost: 0.12,
+  },
+};
+
+function offerTimeoutFromBench() {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = '⏱️ TIMEOUT';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Use a timeout?';
+    card.appendChild(h);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = `You have ${state.timeouts.home} remaining. Calling one lets you draw up a play — the whole team is on the same page coming out of the huddle, so it has a real boost — but you can't get the timeout back.`;
+    card.appendChild(p);
+
+    const coach = document.createElement('div');
+    coach.className = 'coach-box';
+    coach.textContent = "Coach's tip: timeouts are a resource, not just an emergency button. Drawing up a play is fine — just don't spend your last one too early. Teams that save zero timeouts for the final minute often can't get a clean shot off when it matters most.";
+    card.appendChild(coach);
+
+    spacer(card);
+
+    const col = document.createElement('div');
+    col.className = 'btn-col';
+    col.appendChild(actionButton('warn', 'Yes, Call It', 'Draw up a play', () => {
+      state.timeouts.home--;
+      SFX.timeout();
+      logPlay('You called a timeout to draw up a play.');
+      showTimeoutCard(() => showDrawnUpPlayCard());
+    }));
+    col.appendChild(actionButton('ghost', 'No, Keep Playing', 'Back to the possession', () => {
+      showDecisionCard();
+    }));
+    card.appendChild(col);
+  }, 'home-turn');
+}
+
+function showDrawnUpPlayCard() {
+  // Coming out of a timeout the offense also gets a fresh shot clock
+  // and a clean read, on top of whatever play actually gets called.
+  state.quality = 'fresh';
+  state.passesThisPossession = 0;
+  state.ballSpot = randomPerimeterSpot();
+  state.shotClock = SHOT_CLOCK_START;
+
+  mountCard((card) => {
+    card.appendChild(speakerBadge('coach'));
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'OUT OF THE TIMEOUT';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Draw up a play';
+    card.appendChild(h);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = "Pick the call. Whatever you choose runs as scripted — the team executes it, and it has a real boost since everyone's on the same page.";
+    card.appendChild(p);
+
+    spacer(card);
+
+    const col = document.createElement('div');
+    col.className = 'btn-col';
+    Object.keys(DRAWN_UP_PLAYS).forEach(key => {
+      const play = DRAWN_UP_PLAYS[key];
+      col.appendChild(actionButton('primary', play.icon + ' ' + play.name, play.desc, () => runDrawnUpPlay(key)));
+    });
+    card.appendChild(col);
+  }, 'home-turn');
+}
+
+function runDrawnUpPlay(playKey) {
+  const play = DRAWN_UP_PLAYS[playKey];
+  state.lastAction = play.action;
+  logPlay(`Coming out of the timeout, you run "${play.name}."`);
+
+  const actionResolvers = {
+    drive: resolveDrive,
+    shoot: resolveShoot,
+    postup: resolvePostUp,
+    shoot3: resolveShoot3,
+  };
+
+  state.drawnUpBoost = play.oddsBoost;
+  actionResolvers[play.action]();
+  state.drawnUpBoost = 0;
+}
+
+function showDecisionCardFreshAfterTimeout() {
+  state.quality = 'fresh';
+  state.passesThisPossession = 0;
+  state.ballSpot = randomPerimeterSpot();
+  showDecisionCard();
+}
+
+function showTimeoutCard(onContinue, message) {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'TIMEOUT — HOME';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Huddle up.';
+    card.appendChild(h);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.textContent = message || "Coach draws up a fresh set on the whiteboard. Take a breath — you get to start this possession clean.";
+    card.appendChild(p);
+
+    spacer(card);
+    continueButton(card, "Back to the Court", onContinue);
+  }, 'home-turn');
+}
+
+// ---------------------------------------------------------
+// Quarter / game flow
+// ---------------------------------------------------------
+function showQuarterBreak() {
+  const isLastQuarter = state.quarter >= TOTAL_QUARTERS;
+  SFX.buzzer();
+
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = isLastQuarter ? 'FINAL BUZZER' : 'END OF QUARTER ' + state.quarter;
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = isLastQuarter ? 'GAME OVER' : 'QUARTER BREAK';
+    card.appendChild(h);
+
+    const fs = document.createElement('div');
+    fs.className = 'final-score';
+    fs.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        ${teamLogoSvg('home', 32)}
+        <span class="num display" style="color:var(--home-d);">${state.score.home}</span>
+      </div>
+      <span class="vs">${isLastQuarter ? 'FINAL' : 'CURRENT'}</span>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        ${teamLogoSvg('away', 32)}
+        <span class="num display" style="color:var(--away);">${state.score.away}</span>
+      </div>
+    `;
+    card.appendChild(fs);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.style.textAlign = 'center';
+    if (isLastQuarter) {
+      if (state.score.home > state.score.away) {
+        p.textContent = "You did it — your team comes out on top!";
+      } else if (state.score.home < state.score.away) {
+        p.textContent = "Tough one. The other team gets the win this time.";
+      } else {
+        p.textContent = "Dead even at the buzzer — that's a nail-biter.";
+      }
+    } else {
+      p.textContent = "Catch your breath. Coach has a few words before the next quarter.";
+    }
+    card.appendChild(p);
+
+    spacer(card);
+
+    if (isLastQuarter) {
+      continueButton(card, 'See Final Recap', () => showFinalRecap());
+    } else {
+      continueButton(card, 'Start Quarter ' + (state.quarter + 1), () => startNextQuarter());
+    }
+  }, 'neutral-turn');
+}
+
+function startNextQuarter() {
+  state.quarter++;
+  state.possessionsLeftThisQuarter = POSSESSIONS_PER_QUARTER;
+  state.fouls.home = 0;
+  state.fouls.away = 0;
+  state.cpuRun = 0;
+  state.quality = 'fresh';
+  state.passesThisPossession = 0;
+  state.ballSpot = randomPerimeterSpot();
+  showDecisionCard();
+}
+
+// ---------------------------------------------------------
+// Decision report: summarizes how closely your shot selection
+// matched the EV-optimal choice across the game, with concrete
+// examples of the costliest gaps.
+// ---------------------------------------------------------
+function buildDecisionReport(decisionLog) {
+  const wrap = document.createElement('div');
+  if (decisionLog.length === 0) {
+    wrap.innerHTML = `<p class="body-text">No shots attempted to grade this game.</p>`;
+    return wrap;
+  }
+
+  const counts = { drive: 0, shoot: 0, postup: 0, shoot3: 0 };
+  decisionLog.forEach(d => counts[d.action] = (counts[d.action] || 0) + 1);
+  const optimalCount = decisionLog.filter(d => d.wasOptimal).length;
+  const optimalPct = Math.round((optimalCount / decisionLog.length) * 100);
+
+  const labelMap = { drive: 'Drive', shoot: 'Shoot', postup: 'Post Up', shoot3: '3PT Shot' };
+  const distLine = Object.keys(counts).filter(k => counts[k] > 0)
+    .map(k => `${labelMap[k]} ${counts[k]}`).join(' · ');
+
+  const verdict = optimalPct >= 80 ? "Excellent shot selection — you read the defense well almost every time."
+    : optimalPct >= 60 ? "Solid decision-making overall, with a few possessions worth a second look."
+    : optimalPct >= 40 ? "Mixed bag — roughly half your shots fought the defense instead of using what it gave you."
+    : "Your shot selection didn't match what the defense was giving you most of the game — worth reviewing the misses below.";
+
+  const worstGaps = decisionLog.filter(d => !d.wasOptimal).sort((a, b) => b.gap - a.gap).slice(0, 3);
+
+  let html = `
+    <div class="decision-summary">
+      <div class="decision-pct">${optimalPct}%</div>
+      <div class="decision-pct-label">of your shots matched<br>the best available option</div>
+    </div>
+    <p class="body-text">${verdict}</p>
+    <p class="body-text" style="font-size:13px; color:var(--muted);">Shot mix: ${distLine}</p>
+  `;
+
+  if (worstGaps.length > 0) {
+    html += `<div class="eyebrow lesson-tag" style="margin-top:10px;">COSTLIEST DECISIONS</div>`;
+    worstGaps.forEach(d => {
+      const postureDesc = d.posture === 'sagging' ? 'sagging off' : (d.posture === 'tight' ? 'playing tight' : 'set');
+      html += `<div class="decision-example">
+        You chose <strong>${labelMap[d.action]}</strong> (worth ~${d.evTaken.toFixed(1)} pts) while the defense was ${postureDesc} —
+        <strong>${labelMap[d.bestAction]}</strong> was worth ~${d.evBest.toFixed(1)} pts in that exact spot.
+      </div>`;
+    });
+  }
+
+  wrap.innerHTML = html;
+  return wrap;
+}
+
+// ---------------------------------------------------------
+// Arc adaptation: Voltage drifts toward whatever scored on you,
+// and away from whatever you shut down, within bounds.
+// ---------------------------------------------------------
+function applyArcAdaptation() {
+  const tally = state.cpuActionTally;
+  const rates = {};
+  Object.keys(tally).forEach(action => {
+    const t = tally[action];
+    rates[action] = t.att >= 3 ? (t.made / t.att) : null; // ignore tiny samples
+  });
+
+  const validRates = Object.entries(rates).filter(([k, v]) => v !== null);
+  if (validRates.length === 0) return [];
+
+  const avg = validRates.reduce((sum, [, v]) => sum + v, 0) / validRates.length;
+  const notes = [];
+
+  validRates.forEach(([action, rate]) => {
+    const diff = rate - avg;
+    // Nudge proportionally to how far this action's success rate was
+    // from the game's average, clamped to keep things recognizable.
+    const adjust = clamp(1 + diff * 1.4, 0.5, 1.5);
+    arcState.cpuActionWeightMods[action] = clamp(
+      (arcState.cpuActionWeightMods[action] * 0.5) + (adjust * 0.5), // blend with prior games, don't overcorrect on one game
+      0.5, 1.5
+    );
+    const label = { drive: 'driving', shoot: 'pulling up for jumpers', postup: 'working the post' }[action];
+    if (diff > 0.12) notes.push(`Voltage had real success ${label} (${Math.round(rate*100)}%) — expect to see more of it.`);
+    else if (diff < -0.12) notes.push(`Voltage struggled ${label} (${Math.round(rate*100)}%) against you — they may pull back from it.`);
+  });
+
+  return notes;
+}
+
+function showFinalRecap() {
+  // Record this game into arc history before showing anything
+  const won = state.score.home > state.score.away;
+  if (won) arcState.wins++; else if (state.score.home < state.score.away) arcState.losses++;
+
+  const adaptationNotes = applyArcAdaptation();
+  arcState.gameSummaries.push({
+    gameNumber: arcState.gameNumber,
+    won,
+    scoreHome: state.score.home,
+    scoreAway: state.score.away,
+  });
+  arcState.allDecisions = arcState.allDecisions.concat(state.decisionLog);
+
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'BOX SCORE RECAP — GAME ' + arcState.gameNumber + ' OF ' + ARC_TOTAL_GAMES;
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Game Recap';
+    card.appendChild(h);
+
+    const fs = document.createElement('div');
+    fs.className = 'final-score';
+    fs.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        ${teamLogoSvg('home', 32)}
+        <span class="num display" style="color:var(--home-d);">${state.score.home}</span>
+      </div>
+      <span class="vs">FINAL</span>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        ${teamLogoSvg('away', 32)}
+        <span class="num display" style="color:var(--away);">${state.score.away}</span>
+      </div>
+    `;
+    card.appendChild(fs);
+
+    const eyebrow2 = document.createElement('div');
+    eyebrow2.className = 'eyebrow lesson-tag';
+    eyebrow2.textContent = "COACH'S DECISION REPORT";
+    card.appendChild(eyebrow2);
+    card.appendChild(buildDecisionReport(state.decisionLog));
+
+    const logBox = document.createElement('div');
+    logBox.className = 'play-log';
+    const recent = state.log.slice(-8);
+    logBox.innerHTML = recent.map(l => `Q${l.quarter}: ${escapeHtml(l.text)}`).join('<br><br>');
+    card.appendChild(logBox);
+
+    spacer(card);
+
+    if (arcState.gameNumber >= ARC_TOTAL_GAMES) {
+      continueButton(card, 'See Arc Summary', () => showArcSummary());
+    } else {
+      continueButton(card, 'Continue to Arc Hub', () => showArcHub(adaptationNotes));
+    }
+  }, 'neutral-turn');
+}
+
+// ---------------------------------------------------------
+// Arc Hub — shown between games. Record, scouting notes on how
+// Voltage is adapting, then start the next game fresh.
+// ---------------------------------------------------------
+function showArcHub(adaptationNotes) {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'THE ARC';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'Game ' + arcState.gameNumber + ' Complete';
+    card.appendChild(h);
+
+    const recordLine = document.createElement('div');
+    recordLine.className = 'final-score';
+    recordLine.innerHTML = `<span class="num display" style="color:var(--good);">${arcState.wins}</span><span class="vs">WINS — LOSSES</span><span class="num display" style="color:var(--bad, var(--home-d));">${arcState.losses}</span>`;
+    card.appendChild(recordLine);
+
+    const eyebrow2 = document.createElement('div');
+    eyebrow2.className = 'eyebrow lesson-tag';
+    eyebrow2.textContent = 'SCOUTING REPORT — NEXT GAME';
+    card.appendChild(eyebrow2);
+
+    const note = document.createElement('div');
+    note.className = 'outcome-note';
+    if (adaptationNotes && adaptationNotes.length > 0) {
+      note.innerHTML = adaptationNotes.map(n => `• ${n}`).join('<br>');
+    } else {
+      note.textContent = "Not enough of a pattern yet to call — Voltage will play it close to their usual mix next game.";
+    }
+    card.appendChild(note);
+
+    spacer(card);
+    continueButton(card, 'Start Game ' + (arcState.gameNumber + 1), () => startNextArcGame());
+  }, 'neutral-turn');
+}
+
+function startNextArcGame() {
+  arcState.gameNumber++;
+  resetGameState();
+  showTipOffCard();
+}
+
+function showArcSummary() {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'ARC COMPLETE — ' + ARC_TOTAL_GAMES + ' GAMES';
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline good';
+    h.textContent = arcState.wins > arcState.losses ? 'A Winning Season' : (arcState.wins === arcState.losses ? 'An Even Season' : 'A Tough Season');
+    card.appendChild(h);
+
+    const recordLine = document.createElement('div');
+    recordLine.className = 'final-score';
+    recordLine.innerHTML = `<span class="num display" style="color:var(--good);">${arcState.wins}</span><span class="vs">FINAL RECORD</span><span class="num display" style="color:var(--home-d);">${arcState.losses}</span>`;
+    card.appendChild(recordLine);
+
+    const gameList = document.createElement('div');
+    gameList.className = 'play-log';
+    gameList.innerHTML = arcState.gameSummaries.map(g =>
+      `Game ${g.gameNumber}: ${g.won ? 'W' : 'L'} (${g.scoreHome}-${g.scoreAway})`
+    ).join('<br>');
+    card.appendChild(gameList);
+
+    const eyebrow2 = document.createElement('div');
+    eyebrow2.className = 'eyebrow lesson-tag';
+    eyebrow2.style.marginTop = '10px';
+    eyebrow2.textContent = "FULL-ARC DECISION REPORT";
+    card.appendChild(eyebrow2);
+    card.appendChild(buildDecisionReport(arcState.allDecisions));
+
+    spacer(card);
+    continueButton(card, 'Start a New Arc', () => location.reload());
+  }, '');
+}
+
+// ---------------------------------------------------------
+// Original team logos (fictional, no real-world branding)
+// ---------------------------------------------------------
+function ironsideLogoSvg(size) {
+  size = size || 40;
+  const t = TEAMS.home;
+  return `
+    <svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 4 L58 14 V32 C58 48 46 58 32 60 C18 58 6 48 6 32 V14 Z" fill="${t.dark}"/>
+      <path d="M32 9 L53 17 V32 C53 45 43 53 32 55 C21 53 11 45 11 32 V17 Z" fill="${t.primary}"/>
+      <path d="M36 14 L22 36 H30 L26 50 L44 26 H35 Z" fill="${t.accent}"/>
+    </svg>
+  `;
+}
+
+function voltageLogoSvg(size) {
+  size = size || 40;
+  const t = TEAMS.away;
+  return `
+    <svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="29" fill="${t.dark}"/>
+      <circle cx="32" cy="32" r="24" fill="${t.primary}"/>
+      <path d="M20 10 L44 10 L30 28 L40 28 L18 56 L26 34 L16 34 Z" fill="${t.accent}"/>
+    </svg>
+  `;
+}
+
+function teamLogoSvg(team, size) {
+  return team === 'home' ? ironsideLogoSvg(size) : voltageLogoSvg(size);
+}
+
+// ---------------------------------------------------------
+// Tip-off intro screen
+// ---------------------------------------------------------
+function showTipOffCard() {
+  mountCard((card) => {
+    card.appendChild(speakerBadge('announcer'));
+
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = 'GAME ' + arcState.gameNumber + ' OF ' + ARC_TOTAL_GAMES + ' — TONIGHT\u2019S MATCHUP';
+    card.appendChild(eyebrow);
+
+    const matchup = document.createElement('div');
+    matchup.className = 'tipoff-matchup';
+    matchup.innerHTML = `
+      <div class="tipoff-team">
+        ${teamLogoSvg('home', 64)}
+        <div class="tipoff-name" style="color:${TEAMS.home.dark};">${TEAMS.home.name}</div>
+        <div class="tipoff-city">${TEAMS.home.city}</div>
+      </div>
+      <div class="tipoff-vs">VS</div>
+      <div class="tipoff-team">
+        ${teamLogoSvg('away', 64)}
+        <div class="tipoff-name" style="color:${TEAMS.away.dark};">${TEAMS.away.name}</div>
+        <div class="tipoff-city">${TEAMS.away.city}</div>
+      </div>
+    `;
+    card.appendChild(matchup);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.style.textAlign = 'center';
+    h.textContent = 'Tip-Off';
+    card.appendChild(h);
+
+    const taglines = document.createElement('div');
+    taglines.className = 'tipoff-taglines';
+    taglines.innerHTML = `
+      <div><strong style="color:${TEAMS.home.dark};">${TEAMS.home.name}:</strong> "${TEAMS.home.tagline}"</div>
+      <div><strong style="color:${TEAMS.away.dark};">${TEAMS.away.name}:</strong> "${TEAMS.away.tagline}"</div>
+    `;
+    card.appendChild(taglines);
+
+    const p = document.createElement('p');
+    p.className = 'body-text';
+    p.style.textAlign = 'center';
+    p.textContent = "You're running point for Ironside. Four quarters, both ends of the floor — let's go.";
+    card.appendChild(p);
+
+    const role = currentRole();
+    const roleBox = document.createElement('div');
+    roleBox.className = 'coach-box';
+    roleBox.innerHTML = `<strong>Tonight you're a ${role.icon} ${role.name}.</strong><br>${role.desc}`;
+    card.appendChild(roleBox);
+
+    spacer(card);
+    continueButton(card, 'Start the Game', () => { SFX.tipoff(); showDecisionCard(); });
+
+    const guideBtn = document.createElement('button');
+    guideBtn.className = 'ghost-btn';
+    guideBtn.style.width = '100%';
+    guideBtn.style.marginTop = '10px';
+    guideBtn.style.padding = '11px';
+    guideBtn.style.borderRadius = '12px';
+    guideBtn.textContent = '📋 Read the Strategy Guide First';
+    guideBtn.addEventListener('click', () => showStrategyGuide(() => showTipOffCard()));
+    card.appendChild(guideBtn);
+  }, 'neutral-turn');
+}
+
+// ---------------------------------------------------------
+// Strategy guide — accessible pre-game and mid-game, never
+// costs a possession or changes any state. Calling returnTo()
+// re-shows whatever screen the player came from.
+// ---------------------------------------------------------
+function showStrategyGuide(returnTo) {
+  mountCard((card) => {
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'eyebrow coach-tag';
+    eyebrow.textContent = "COACH'S PLAYBOOK";
+    card.appendChild(eyebrow);
+
+    const h = document.createElement('h1');
+    h.className = 'headline';
+    h.textContent = 'How to Actually Win';
+    card.appendChild(h);
+
+    const intro = document.createElement('p');
+    intro.className = 'body-text';
+    intro.textContent = "No single button wins the game by itself. Both sides of the ball reward reading the situation over repeating a favorite. Here's the real logic:";
+    card.appendChild(intro);
+
+    const sections = [
+      {
+        title: '🏀 On Offense',
+        body: "Drive beats Post Up beats Shoot, on average, from a standing start — driving has the best odds, shooting alone has the worst. But every pass you make first pushes ALL your odds higher by making the defense move. Spamming Shoot every time is the single worst habit in the game. A quick Pass before you Drive is almost always worth the extra second."
+      },
+      {
+        title: '🛡️ On Defense',
+        body: "Every scheme baits a specific response from Away, and that's exactly the response it handles worst. Press baits more drives (and that's your biggest weakness while pressing). Pack the Paint baits more jump shots (which it can't stop at all). Double the Post baits a kick-out pass to someone else. Man-to-Man baits nothing extra and never backfires — but it never discounts anything either."
+      },
+      {
+        title: '🔥 Read the Heat',
+        body: "If Away is on fire, packing in or pressing makes things worse, not better — a hot shooter punishes exactly those gaps. Switch to Man-to-Man until the fire cools off."
+      },
+      {
+        title: '⏱️ Use Your Timeouts',
+        body: "Calling timeout during an opponent's run stops the bleeding and resets the shot clock feel on your next trip. Save at least one for the final stretch — you'll want it to set up a clean look when it matters most."
+      },
+      {
+        title: '🦵 Foul Late, Not Early',
+        body: "Intentional fouling only makes sense when you're behind late and the clock is the real opponent. It trades their possession for two free throws — good when you need the ball back fast, risky against a great free-throw shooting team."
+      },
+    ];
+
+    sections.forEach(s => {
+      const sectionTitle = document.createElement('div');
+      sectionTitle.style.fontWeight = 'bold';
+      sectionTitle.style.fontSize = '14px';
+      sectionTitle.style.color = 'var(--ink)';
+      sectionTitle.style.margin = '14px 0 4px';
+      sectionTitle.textContent = s.title;
+      card.appendChild(sectionTitle);
+
+      const sectionBody = document.createElement('p');
+      sectionBody.className = 'body-text';
+      sectionBody.style.fontSize = '13.5px';
+      sectionBody.style.margin = '0 0 4px';
+      sectionBody.textContent = s.body;
+      card.appendChild(sectionBody);
+    });
+
+    const bottomLine = document.createElement('div');
+    bottomLine.className = 'coach-box';
+    bottomLine.style.marginTop = '12px';
+    bottomLine.innerHTML = "<strong>Bottom line:</strong> there's no single play or scheme you can pick blindly forever. The game is built so the right answer keeps changing — your job is to notice when it changes.";
+    card.appendChild(bottomLine);
+
+    spacer(card);
+    continueButton(card, 'Back to the Game', returnTo);
+  }, 'neutral-turn');
+}
+
+// ---------------------------------------------------------
+// Sound effects — fully synthesized via Web Audio API, no
+// external files. A single shared AudioContext, lazily created
+// on first user interaction (required by browser autoplay rules).
+// ---------------------------------------------------------
+const SFX = {
+  ctx: null,
+  muted: false,
+
+  ensureCtx() {
+    if (!this.ctx) {
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) { return null; }
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    return this.ctx;
+  },
+
+  tone(freq, duration, opts) {
+    if (this.muted) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) return;
+    opts = opts || {};
+    const type = opts.type || 'sine';
+    const startGain = opts.gain != null ? opts.gain : 0.18;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (opts.glideTo) {
+      osc.frequency.linearRampToValueAtTime(opts.glideTo, ctx.currentTime + duration);
+    }
+    gain.gain.setValueAtTime(startGain, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  },
+
+  noise(duration, opts) {
+    if (this.muted) return;
+    const ctx = this.ensureCtx();
+    if (!ctx) return;
+    opts = opts || {};
+    const bufferSize = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = opts.filterType || 'lowpass';
+    filter.frequency.value = opts.filterFreq || 1200;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(opts.gain != null ? opts.gain : 0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  },
+
+  // --- Named game events ---
+  make() {
+    this.tone(520, 0.12, { type: 'triangle', gain: 0.16, glideTo: 720 });
+    setTimeout(() => this.tone(880, 0.18, { type: 'sine', gain: 0.14 }), 90);
+  },
+  make3() {
+    this.tone(560, 0.10, { type: 'triangle', gain: 0.16, glideTo: 740 });
+    setTimeout(() => this.tone(940, 0.14, { type: 'sine', gain: 0.13 }), 80);
+    setTimeout(() => this.tone(1180, 0.20, { type: 'sine', gain: 0.12 }), 160);
+  },
+  miss() {
+    this.tone(180, 0.22, { type: 'sine', gain: 0.12, glideTo: 120 });
+  },
+  turnover() {
+    this.noise(0.18, { filterType: 'highpass', filterFreq: 800, gain: 0.16 });
+    this.tone(140, 0.16, { type: 'sawtooth', gain: 0.10, glideTo: 90 });
+  },
+  opponentScore() {
+    this.tone(300, 0.14, { type: 'sawtooth', gain: 0.09, glideTo: 220 });
+  },
+  block() {
+    this.noise(0.10, { filterType: 'bandpass', filterFreq: 1400, gain: 0.18 });
+  },
+  whistleFoul() {
+    this.tone(1500, 0.28, { type: 'square', gain: 0.10, glideTo: 1500 });
+  },
+  buzzer() {
+    this.tone(110, 0.9, { type: 'sawtooth', gain: 0.14 });
+  },
+  catchFire() {
+    [660, 880, 1100, 1320].forEach((f, i) => {
+      setTimeout(() => this.tone(f, 0.14, { type: 'triangle', gain: 0.12 }), i * 70);
+    });
+  },
+  tipoff() {
+    this.tone(440, 0.10, { type: 'square', gain: 0.10 });
+    setTimeout(() => this.tone(660, 0.16, { type: 'square', gain: 0.10 }), 100);
+  },
+  click() {
+    this.tone(700, 0.035, { type: 'square', gain: 0.045 });
+  },
+  timeout() {
+    this.tone(330, 0.30, { type: 'square', gain: 0.09, glideTo: 330 });
+  },
+};
+
+function toggleMute() {
+  SFX.muted = !SFX.muted;
+  try { localStorage.setItem('pointguard_muted', SFX.muted ? '1' : '0'); } catch (e) {}
+  renderScoreboard();
+}
+
+(function restoreMutePref() {
+  try {
+    SFX.muted = localStorage.getItem('pointguard_muted') === '1';
+  } catch (e) {}
+})();
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------------------------------------------------------
+// Boot
+// ---------------------------------------------------------
+randomizeRole();
+lastCourtOpts = { possessionTeam: 'home', ballSpotKey: state.ballSpot, scheme: state.cpuDefenseScheme };
+showTipOffCard();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
